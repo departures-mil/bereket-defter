@@ -27,7 +27,7 @@ import guncelle
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.12"
+APP_VERSION = "1.13"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1738,6 +1738,36 @@ class SettingsDialog(QDialog):
         self.c_notify = QCheckBox(_("Yeni sürüm bulununca bildirim göster"))
         self.c_notify.setChecked(cfg["notify"])
         lay.addWidget(self.c_notify)
+        # --- admin ile iletişim (ayarların sonu)
+        h2 = QLabel(_("✉ Admin ile iletişime geç"))
+        h2.setObjectName("h2")
+        lay.addWidget(h2)
+        cinfo = QLabel(_("Programı geliştirmemiz için öneri, istek ve hata bildirimlerinizi yazın; "
+                         "mesajınız doğrudan yöneticiye ulaşır."))
+        cinfo.setWordWrap(True)
+        lay.addWidget(cinfo)
+        self.c_name = QLineEdit()
+        self.c_name.setPlaceholderText(_("Adınız (isteğe bağlı)"))
+        self.c_name.setMaxLength(80)
+        self.c_mail = QLineEdit()
+        self.c_mail.setPlaceholderText(_("E-posta (yanıt için, isteğe bağlı)"))
+        self.c_mail.setMaxLength(120)
+        self.c_mail.setLayoutDirection(Qt.LeftToRight)
+        row = QHBoxLayout()
+        row.addWidget(self.c_name)
+        row.addWidget(self.c_mail)
+        lay.addLayout(row)
+        self.c_msg = QTextEdit()
+        self.c_msg.setPlaceholderText(_("Mesajınız"))
+        self.c_msg.setAcceptRichText(False)
+        self.c_msg.setMinimumHeight(110)
+        lay.addWidget(self.c_msg)
+        crow = QHBoxLayout()
+        crow.addStretch()
+        self.c_send = QPushButton(_("✉ Gönder"))
+        self.c_send.clicked.connect(self.send_contact)
+        crow.addWidget(self.c_send)
+        lay.addLayout(crow)
         bb = QHBoxLayout()
         cancel = QPushButton(_("Vazgeç"))
         cancel.clicked.connect(self.reject)
@@ -1751,6 +1781,49 @@ class SettingsDialog(QDialog):
     def save(self):
         self.result_cfg = {"notify": self.c_notify.isChecked()}
         self.accept()
+
+    def send_contact(self):
+        import base64 as _b64
+        import json as _json
+        import re as _re
+        import urllib.request as _ur
+        msg = self.c_msg.toPlainText().strip()[:5000]
+        mail = self.c_mail.text().strip()
+        if not msg:
+            QMessageBox.information(self, _("✉ Admin ile iletişime geç"), _("Lütfen mesajınızı yazın."))
+            return
+        if mail and not _re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", mail):
+            QMessageBox.information(self, _("✉ Admin ile iletişime geç"), _("E-posta adresi geçerli değil."))
+            return
+        to = _b64.b64decode("").decode()[::-1]
+        body = {"_subject": "Bereket Defter: yeni mesaj", "_template": "table", "_captcha": "false",
+                "Ad": self.c_name.text().strip() or "-", "Mesaj": msg, "Surum": APP_VERSION, "Cihaz": "Windows",
+                "Dil": i18n._lang}
+        if mail:
+            body["email"] = mail
+            body["_replyto"] = mail
+        self.c_send.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        ok = False
+        try:
+            req = _ur.Request("https://formsubmit.co/ajax/" + to, data=_json.dumps(body).encode("utf-8"),
+                              headers={"Content-Type": "application/json", "Accept": "application/json",
+                                       "User-Agent": "Mozilla/5.0 BereketDefter/" + APP_VERSION}, method="POST")
+            with _ur.urlopen(req, timeout=20) as r:
+                j = _json.loads(r.read().decode("utf-8") or "{}")
+            ok = str(j.get("success")).lower() != "false" or "activat" in str(j.get("message", "")).lower()
+        except Exception:
+            ok = False
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.c_send.setEnabled(True)
+        if ok:
+            self.c_msg.clear()
+            QMessageBox.information(self, _("✉ Admin ile iletişime geç"),
+                                    _("Mesajınız yöneticiye iletildi. Teşekkürler!"))
+        else:
+            QMessageBox.warning(self, _("✉ Admin ile iletişime geç"),
+                                _("Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."))
 
 
 # ---------------------------------------------------------------- ana pencere

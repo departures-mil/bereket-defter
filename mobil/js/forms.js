@@ -507,8 +507,38 @@ const Forms = {
       body: h("div", { class: "settings" },
         h("h3", null, t("⬆ Güncelleme denetimi")),
         h("p", null, t("Uygulama her açıldığında yeni sürüm denetlenir.")),
-        h("label", { class: "chk set-chk" }, i, h("span", null, t("Yeni sürüm bulununca bildirim göster")))),
+        h("label", { class: "chk set-chk" }, i, h("span", null, t("Yeni sürüm bulununca bildirim göster"))),
+        Forms.contactBox()),
       footer: [btn(t("Vazgeç"), "light", () => Sheets.close(entry)), btn(t("Kaydet"), "primary", save)] });
+  },
+
+  /* admin ile iletişim: mesaj FormSubmit üzerinden yöneticinin e-postasına gider; adres programda görünmez */
+  contactBox() {
+    const name = inp({ maxlength: 80, dir: "auto", placeholder: t("Adınız (isteğe bağlı)") });
+    const mail = inp({ type: "email", maxlength: 120, dir: "ltr", placeholder: t("E-posta (yanıt için, isteğe bağlı)") });
+    const msg = h("textarea", { class: "inp", maxlength: 5000, dir: "auto", rows: 5, placeholder: t("Mesajınız"), style: "width:100%;box-sizing:border-box" });
+    let busy = false;
+    const send = btn(t("✉ Gönder"), "primary", async () => {
+      if (busy) return;
+      const m = msg.value.trim(), e = mail.value.trim();
+      if (!m) { toast(t("Lütfen mesajınızı yazın.")); return; }
+      if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { toast(t("E-posta adresi geçerli değil.")); return; }
+      const to = atob("").split("").reverse().join("");
+      const body = { _subject: "Bereket Defter: yeni mesaj", _template: "table", _captcha: "false", Ad: name.value.trim() || "-", Mesaj: m, Surum: APP_VERSION, Cihaz: "Android", Dil: document.documentElement.lang || "" };
+      if (e) { body.email = e; body._replyto = e; }
+      busy = true; send.disabled = true;
+      try {
+        const r = await fetch("https://formsubmit.co/ajax/" + to, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
+        const j = await r.json().catch(() => ({}));
+        if ((r.ok && String(j.success) !== "false") || /activat/i.test(j.message || "")) { msg.value = ""; toast(t("Mesajınız yöneticiye iletildi. Teşekkürler!")); }
+        else toast(t("Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."));
+      } catch (x) { toast(t("Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.")); }
+      busy = false; send.disabled = false;
+    });
+    return h("div", { class: "contact-box" },
+      h("h3", null, t("✉ Admin ile iletişime geç")),
+      h("p", null, t("Programı geliştirmemiz için öneri, istek ve hata bildirimlerinizi yazın; mesajınız doğrudan yöneticiye ulaşır.")),
+      name, mail, msg, send);
   },
 
   /* ================================================================ eşitleme */

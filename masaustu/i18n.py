@@ -10,6 +10,19 @@ _lang = "tr"
 
 # Türkçe: (English, العربية)
 T = {
+    # admin iletişim
+    "✉ Admin ile iletişime geç": ("✉ Contact the admin", "✉ التواصل مع المسؤول"),
+    "Programı geliştirmemiz için öneri, istek ve hata bildirimlerinizi yazın; mesajınız doğrudan yöneticiye ulaşır.": (
+        "Send suggestions, requests and bug reports to help us improve the program; your message goes straight to the administrator.",
+        "أرسل اقتراحاتك وطلباتك وبلاغات الأخطاء لمساعدتنا على تطوير البرنامج؛ تصل رسالتك مباشرة إلى المسؤول."),
+    "Adınız (isteğe bağlı)": ("Your name (optional)", "اسمك (اختياري)"),
+    "E-posta (yanıt için, isteğe bağlı)": ("Email (for a reply, optional)", "البريد الإلكتروني (للرد، اختياري)"),
+    "Mesajınız": ("Your message", "رسالتك"),
+    "✉ Gönder": ("✉ Send", "✉ إرسال"),
+    "Lütfen mesajınızı yazın.": ("Please write your message.", "يرجى كتابة رسالتك."),
+    "E-posta adresi geçerli değil.": ("The email address is not valid.", "عنوان البريد الإلكتروني غير صالح."),
+    "Mesajınız yöneticiye iletildi. Teşekkürler!": ("Your message has been delivered to the administrator. Thank you!", "تم إيصال رسالتك إلى المسؤول. شكرًا لك!"),
+    "Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.": ("The message could not be sent. Check your internet connection and try again.", "تعذّر إرسال الرسالة. تحقّق من اتصالك بالإنترنت وحاول مجددًا."),
     # genel
     "Bereket Alacak-Verecek Defteri": ("Bereket Debt & Credit Ledger", "دفتر بركة للديون والمستحقات"),
     "Dolar ($)": ("Dollar ($)", "دولار ($)"),
