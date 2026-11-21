@@ -1,0 +1,9 @@
+{
+ "surum": "1.12",
+ "kod": "1_12",
+ "dosya": "masaustu-1_12.zip",
+ "sha256": "efd9f35bddca4c9d1fbd1f64517c2cc27b531e8bea4196415303ba2f6f04874a",
+ "boyut": 173133,
+ "notlar": "v1.12: Güncellemeler artık GitHub'dan geliyor (daha hızlı ve güvenilir). İndirirken yüzde, indirilen/toplam MB, kalan MB ve hız görünür. Ayrıca 1.10-1.11'deki yenilikler: sağ üstte ☁ Eşitle ve ⬆ Güncelleme butonları, düzgün indirme bilgisi. Kayıtlarınız olduğu gibi kalır.",
+ "tarih": "2026-11-21 23:11"
+}

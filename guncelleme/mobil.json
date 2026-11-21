@@ -1,0 +1,10 @@
+{
+ "surum": "1.12",
+ "kod": "1_12",
+ "dosya": "mobil-1_12.zip",
+ "sha256": "82cb9ed559ce02122c87a85db05aa91ad3749607cdc37c4e7da6e6c919925371",
+ "boyut": 154925,
+ "notlar": "v1.12: Güncellemeler artık GitHub'dan geliyor (daha hızlı ve güvenilir). İndirirken yüzde, indirilen/toplam MB, kalan MB ve hız görünür. Ayrıca 1.10-1.11'deki yenilikler: sağ üstte ☁ Eşitle ve ⬆ Güncelleme butonları, düzgün indirme bilgisi. Kayıtlarınız olduğu gibi kalır.",
+ "tarih": "2026-11-21 23:11",
+ "minNative": 14
+}
