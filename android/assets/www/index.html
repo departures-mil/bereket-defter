@@ -30,6 +30,7 @@
 <div id="app"></div>
 <script src="js/i18n_desktop.js"></script>
 <script src="js/i18n_mobile.js"></script>
+<script src="js/kullanim.js"></script>
 <script src="js/core.js"></script>
 <script src="js/store.js"></script>
 <script src="js/sync.js"></script>
@@ -39,5 +40,8 @@
 <script src="js/statement.js"></script>
 <script src="js/forms.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/duyuru.js"></script>
+<script>Duyuru.baslat({uygulama:"bereket-defter",surum:APP_VERSION,dil:function(){return LANG}});</script>
+<script>Kullanim.baslat({uygulama:"bereket-defter",bulut:true,ai:false,dil:function(){return LANG},proje:function(){try{return Sync.signedIn()?Sync.cfg().projectId:""}catch(e){return ""}}});</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 /* Yalnızca telefon sürümünde olan metinler. Anahtar = Türkçe metin; değer = [English, العربية].
  * Masaüstü çevirileri i18n_desktop.js içindedir (masaüstü i18n.py'den üretilir). */
 window.I18N_MOBILE = {
+"Küçült": ["Minimize", "تصغير"],
 "Bilgisayara bağlanılıyor…": ["Connecting to the computer…", "جارٍ الاتصال بالحاسوب…"],
 "Kayıtlar birleştiriliyor…": ["Merging records…", "جارٍ دمج السجلات…"],
 "Belge gönderiliyor: {}": ["Sending document: {}", "جارٍ إرسال المستند: {}"],
