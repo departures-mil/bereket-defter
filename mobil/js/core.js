@@ -1,7 +1,7 @@
 /* Bereket Alacak-Verecek Defteri — telefon sürümü: sabitler, dil, biçimlendirme, yardımcılar. */
 'use strict';
 
-const APP_VERSION = "1.15";
+const APP_VERSION = "1.16";
 const APP_TITLE = "Bereket Alacak-Verecek Defteri";
 const CURRENCIES = ["USD", "TRY", "SYP"];
 const CURRENCY_NAMES = { USD: "Dolar ($)", TRY: "Türk Lirası (₺)", SYP: "Suriye Lirası (£S)" };
