@@ -1,9 +1,9 @@
 {
- "surum": "1.15",
- "kod": "1_15",
- "dosya": "masaustu-1_15.zip",
- "sha256": "01f819b38cb8f6f1c05e53e4d7566690232c6a454f82252375a5208fe8ac8942",
- "boyut": 183867,
- "notlar": "1.15: Admin duyuruları eklendi; yeni duyurular programda görünür, 🔔 düğmesinden okunur. Kayıtlarınız olduğu gibi kalır.",
- "tarih": "2026-11-22 07:01"
+ "surum": "1.16",
+ "kod": "1_16",
+ "dosya": "masaustu-1_16.zip",
+ "sha256": "dff891d85c6e7b49fd1c01598681ed71e8975b62165bb3ddf6cdad0077c7b1b2",
+ "boyut": 190534,
+ "notlar": "Bereket 1.16: Ayarlar'a «Kullanım Limitleri» eklendi — kendi Firebase hesabınızın bugünkü okuma/yazma/silme kullanımı, sınırın ne kadarı doldu ve sıfırlanmaya kalan süre. Kayıtlarınız olduğu gibi kalır.",
+ "tarih": "2026-11-22 09:21"
 }

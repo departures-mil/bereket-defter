@@ -508,6 +508,7 @@ const Forms = {
         h("h3", null, t("⬆ Güncelleme denetimi")),
         h("p", null, t("Uygulama her açıldığında yeni sürüm denetlenir.")),
         h("label", { class: "chk set-chk" }, i, h("span", null, t("Yeni sürüm bulununca bildirim göster"))),
+        window.Kullanim ? Kullanim.kart() : "",
         Forms.contactBox()),
       footer: [btn(t("Vazgeç"), "light", () => Sheets.close(entry)), btn(t("Kaydet"), "primary", save)] });
   },

@@ -4,6 +4,7 @@ Sözleşme: alacak-verecek-mobil/ESITLEME_SPEC.md (bölüm 1-6). Ağ işleri tek
 (kendi SQLite bağlantısıyla) yapılır; arayüz `events` kuyruğunu okur (QTimer ile), hiçbir zaman beklemez.
 Ayarlar ve oturum <veri klasörü>/esitleme.json dosyasında tutulur (şifre asla kaydedilmez).
 """
+import kullanim_sayac
 import base64
 import collections
 import http.client
@@ -351,7 +352,9 @@ class SyncEngine:
         try:
             with opener.open(req, timeout=timeout) as r:
                 raw = r.read()
-                return r.status, (json.loads(raw) if raw else None)
+                out = r.status, (json.loads(raw) if raw else None)
+                kullanim_sayac.kaydet(method, url, body, out[0], out[1])  # Ayarlar > Kullanım Limitleri
+                return out
         except urllib.error.HTTPError as e:
             try:
                 raw = e.read()
@@ -360,6 +363,7 @@ class SyncEngine:
                 payload = {"error": {"message": f"HTTP {e.code}"}}
             if isinstance(payload, list) and payload:
                 payload = payload[0]
+            kullanim_sayac.kaydet(method, url, body, e.code, payload)
             return e.code, payload if isinstance(payload, dict) else {}
         except (urllib.error.URLError, OSError, socket.timeout, http.client.HTTPException, ValueError) as e:
             raise SyncError("NETWORK", str(getattr(e, "reason", e)))

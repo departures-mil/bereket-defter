@@ -25,10 +25,11 @@ from db import CHANNELS, CONTACT_FIELDS, CURRENCIES, CURRENCY_NAMES, CURRENCY_SY
 from sync import RULES, SyncEngine
 import guncelle
 import duyuru_istemci
+import kullanim_sayac
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.15"
+APP_VERSION = "1.16"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1786,6 +1787,8 @@ class SettingsDialog(QDialog):
         self.c_notify = QCheckBox(_("Yeni sürüm bulununca bildirim göster"))
         self.c_notify.setChecked(cfg["notify"])
         lay.addWidget(self.c_notify)
+        # --- kullanım limitleri (kendi Firebase hesabının günlük sınırı)
+        lay.addWidget(kullanim_sayac.KullanimKarti(self))
         # --- admin ile iletişim (ayarların sonu)
         h2 = QLabel(_("✉ Admin ile iletişime geç"))
         h2.setObjectName("h2")
@@ -2125,6 +2128,8 @@ class MainWindow(QWidget):
 
     # --- bulut eşitleme
     def setup_sync(self):
+        kullanim_sayac.baslat(self.db.dir, dil=i18n.lang, bulut=True, ai=False,
+                              proje=lambda: (self.sync.cfg.get("projectId") if getattr(self, "sync", None) and self.sync.cfg.get("uid") else ""))
         if not hasattr(self.db, "sync_engine"):  # dil değişince pencere yeniden kurulur; motor aynı kalır
             self.db.sync_engine = SyncEngine(self.db.dir, self.db.path)
         self.sync = self.db.sync_engine
