@@ -513,6 +513,30 @@ const Forms = {
       footer: [btn(t("Vazgeç"), "light", () => Sheets.close(entry)), btn(t("Kaydet"), "primary", save)] });
   },
 
+  async _contactSend(it) {
+    const F = (v) => ({ stringValue: String(v || "").slice(0, 4000) });
+    const fields = { mesaj: F(it.m), konu: F("Bereket Defter · Mesaj"), dil: F(document.documentElement.lang || ""), surum: F(APP_VERSION), platform: F("Bereket Defter · Android"), zaman: { timestampValue: new Date().toISOString() } };
+    if (it.n) fields.ad = F(it.n);
+    if (it.e) fields.iletisim = F(it.e);
+    const to = atob("").split("").reverse().join("");
+    const inbox = fetch("https://firestore.googleapis.com/v1/projects/comm-calc-103111111/databases/(default)/documents/mesajlar?key=AIzaSyB12RFS6ENPpmnnPsETfjedNH-3hmNWQvA",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields }) }).then((r) => r.ok, () => false);
+    const mailP = fetch("https://formsubmit.co/ajax/" + to, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(it.body) })
+      .then((r) => r.json().catch(() => ({}))).then((j) => String(j.success) === "true", () => false);
+    const [a, b] = await Promise.all([inbox, mailP]);
+    return a || b;
+  },
+  _contactQueue(it) {
+    try { const q = JSON.parse(localStorage.getItem("adminIletisim.kuyruk") || "[]"); q.push(it); localStorage.setItem("adminIletisim.kuyruk", JSON.stringify(q.slice(-20))); } catch (x) {}
+  },
+  async _contactFlush() {
+    let q; try { q = JSON.parse(localStorage.getItem("adminIletisim.kuyruk") || "[]"); } catch (x) { q = []; }
+    if (!q.length || !navigator.onLine) return;
+    const left = [];
+    for (const it of q) { if (!(await Forms._contactSend(it))) left.push(it); }
+    try { localStorage.setItem("adminIletisim.kuyruk", JSON.stringify(left)); } catch (x) {}
+  },
+
   /* admin ile iletişim: mesaj FormSubmit üzerinden yöneticinin e-postasına gider; adres programda görünmez */
   contactBox() {
     const name = inp({ maxlength: 80, dir: "auto", placeholder: t("Adınız (isteğe bağlı)") });
@@ -528,12 +552,11 @@ const Forms = {
       const body = { _subject: "Bereket Defter: yeni mesaj", _template: "table", _captcha: "false", Ad: name.value.trim() || "-", Mesaj: m, Surum: APP_VERSION, Cihaz: "Android", Dil: document.documentElement.lang || "" };
       if (e) { body.email = e; body._replyto = e; }
       busy = true; send.disabled = true;
-      try {
-        const r = await fetch("https://formsubmit.co/ajax/" + to, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
-        const j = await r.json().catch(() => ({}));
-        if ((r.ok && String(j.success) !== "false") || /activat/i.test(j.message || "")) { msg.value = ""; toast(t("Mesajınız yöneticiye iletildi. Teşekkürler!")); }
-        else toast(t("Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."));
-      } catch (x) { toast(t("Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.")); }
+      // v1.17: iki bağımsız kanal — yöneticinin mesaj kutusu (Firestore, yalnızca ekleme) + e-posta kopyası (FormSubmit).
+      // Biri kabul ederse mesaj ulaşmış sayılır; ikisi de olmazsa mesaj saklanır ve internet gelince yeniden gönderilir.
+      const item = { m, e, n: name.value.trim().slice(0, 100), body };
+      if (await Forms._contactSend(item)) { msg.value = ""; toast(t("Mesajınız yöneticiye iletildi. Teşekkürler!")); }
+      else { Forms._contactQueue(item); msg.value = ""; toast(t("İnternet yok; mesajınız saklandı, bağlantı gelince kendiliğinden gönderilecek.")); }
       busy = false; send.disabled = false;
     });
     return h("div", { class: "contact-box" },
@@ -716,3 +739,7 @@ const Backup = {
     fi.click();
   },
 };
+
+// v1.17: bekleyen admin mesajlarını internet gelince gönder
+window.addEventListener("online", () => Forms._contactFlush());
+setTimeout(() => Forms._contactFlush(), 5000);
