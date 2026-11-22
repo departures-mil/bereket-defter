@@ -24,10 +24,11 @@ from i18n import _
 from db import CHANNELS, CONTACT_FIELDS, CURRENCIES, CURRENCY_NAMES, CURRENCY_SYMBOLS, DB, parse_old
 from sync import RULES, SyncEngine
 import guncelle
+import duyuru_istemci
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.14"
+APP_VERSION = "1.15"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1956,6 +1957,9 @@ class MainWindow(QWidget):
         self.upd_btn.setCursor(Qt.PointingHandCursor)
         self.upd_btn.clicked.connect(self.open_update)
         crow.addWidget(self.upd_btn)
+        # admin duyuruları (🔔)
+        self.duyuru = duyuru_istemci.DuyuruIstemci(self, "bereket-defter", APP_VERSION, dil=i18n.lang, guncelle=self.open_update)
+        crow.addWidget(self.duyuru.dugme)
         rbox.addLayout(brow)
         head.addLayout(rbox)
         root.addLayout(head)

@@ -1,9 +1,9 @@
 {
- "surum": "1.14",
- "kod": "1_14",
- "dosya": "masaustu-1_14.zip",
- "sha256": "76774688920f61163173f7b046d6c66ed93af8075ac9fdbb82a45eca46ca1f4f",
- "boyut": 180346,
- "notlar": "1.14: 📶 Wi‑Fi ile internetsiz eşitleme (telefon ⇄ bilgisayar). ☁ Eşitleme penceresinde adres ve kod görünür; aynı Wi‑Fi'daki telefon internet olmadan eşitlenir. Kayıtlarınız silinmez, üst üste yazılmaz.",
- "tarih": "2026-11-22 06:26"
+ "surum": "1.15",
+ "kod": "1_15",
+ "dosya": "masaustu-1_15.zip",
+ "sha256": "01f819b38cb8f6f1c05e53e4d7566690232c6a454f82252375a5208fe8ac8942",
+ "boyut": 183867,
+ "notlar": "1.15: Admin duyuruları eklendi; yeni duyurular programda görünür, 🔔 düğmesinden okunur. Kayıtlarınız olduğu gibi kalır.",
+ "tarih": "2026-11-22 07:01"
 }
