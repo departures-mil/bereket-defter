@@ -29,7 +29,7 @@ import kullanim_sayac
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.16"
+APP_VERSION = "1.17"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1855,19 +1855,39 @@ class SettingsDialog(QDialog):
             body["_replyto"] = mail
         self.c_send.setEnabled(False)
         QApplication.setOverrideCursor(Qt.WaitCursor)
+        # v1.17: iki bağımsız kanal; biri kabul ederse mesaj ulaşmış sayılır.
+        # 1) Yöneticinin mesaj kutusu (Firestore "mesajlar", yalnızca yeni kayıt eklenebilir, kimse okuyamaz)
+        # 2) E-posta kopyası (FormSubmit: Referer'sız isteği reddeder; etkinleştirilmiş site Referer olarak gönderilir)
+        def _post(url, payload, extra):
+            hdr = {"Content-Type": "application/json", "Accept": "application/json",
+                   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BereketDefter/" + APP_VERSION}
+            hdr.update(extra)
+            req = _ur.Request(url, data=_json.dumps(payload).encode("utf-8"), headers=hdr, method="POST")
+            with _ur.urlopen(req, timeout=20) as r:
+                return r.status, _json.loads(r.read().decode("utf-8") or "{}")
         ok = False
         try:
-            req = _ur.Request("https://formsubmit.co/ajax/" + to, data=_json.dumps(body).encode("utf-8"),
-                              headers={"Content-Type": "application/json", "Accept": "application/json",
-                                       "User-Agent": "Mozilla/5.0 BereketDefter/" + APP_VERSION}, method="POST")
-            with _ur.urlopen(req, timeout=20) as r:
-                j = _json.loads(r.read().decode("utf-8") or "{}")
-            ok = str(j.get("success")).lower() != "false" or "activat" in str(j.get("message", "")).lower()
+            F = lambda v: {"stringValue": str(v)[:4000]}
+            fields = {"mesaj": F(msg), "konu": F("Bereket Defter · Mesaj"), "dil": F(i18n._lang), "surum": F(APP_VERSION),
+                      "platform": F("Bereket Defter · Windows"),
+                      "zaman": {"timestampValue": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}}
+            if self.c_name.text().strip():
+                fields["ad"] = F(self.c_name.text().strip()[:100])
+            if mail:
+                fields["iletisim"] = F(mail)
+            st, _j = _post("https://firestore.googleapis.com/v1/projects/comm-calc-103111111/databases/(default)/documents/"
+                           "mesajlar?key=AIzaSyB12RFS6ENPpmnnPsETfjedNH-3hmNWQvA", {"fields": fields}, {})
+            ok = 200 <= st < 300
         except Exception:
-            ok = False
-        finally:
-            QApplication.restoreOverrideCursor()
-            self.c_send.setEnabled(True)
+            pass
+        try:
+            st, j = _post("https://formsubmit.co/ajax/" + to, body,
+                          {"Referer": "https://formsubmit.co/", "Origin": "https://formsubmit.co"})
+            ok = ok or str(j.get("success")).lower() == "true"
+        except Exception:
+            pass
+        QApplication.restoreOverrideCursor()
+        self.c_send.setEnabled(True)
         if ok:
             self.c_msg.clear()
             QMessageBox.information(self, _("✉ Admin ile iletişime geç"),

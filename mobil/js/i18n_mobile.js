@@ -27,6 +27,7 @@ window.I18N_MOBILE = {
 "Lütfen mesajınızı yazın.": ["Please write your message.", "يرجى كتابة رسالتك."],
 "E-posta adresi geçerli değil.": ["The email address is not valid.", "عنوان البريد الإلكتروني غير صالح."],
 "Mesajınız yöneticiye iletildi. Teşekkürler!": ["Your message has been delivered to the administrator. Thank you!", "تم إيصال رسالتك إلى المسؤول. شكرًا لك!"],
+"İnternet yok; mesajınız saklandı, bağlantı gelince kendiliğinden gönderilecek.": ["No internet; your message was saved and will be sent automatically once you are online.", "لا يوجد اتصال؛ حُفظت رسالتك وستُرسل تلقائيًا عند توفر الإنترنت."],
 "Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.": ["The message could not be sent. Check your internet connection and try again.", "تعذّر إرسال الرسالة. تحقّق من اتصالك بالإنترنت وحاول مجددًا."],
 "Güncelleme indiriliyor… %{}": ["Downloading update… {}%", "جارٍ تنزيل التحديث… {}٪"],
 "Güncelleme indiriliyor…": ["Downloading update…", "جارٍ تنزيل التحديث…"],
