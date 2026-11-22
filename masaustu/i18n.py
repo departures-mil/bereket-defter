@@ -231,6 +231,8 @@ T = {
     "✓ Tamamlandı": ("✓ Done", "✓ تم"),
     "Ertele (+1 gün)": ("Snooze (+1 day)", "تأجيل (+يوم)"),
     "Kapat": ("Close", "إغلاق"),
+    "Küçült": ("Minimize", "تصغير"),
+    "Yarım ekran / Tam ekran": ("Half screen / Full screen", "نصف الشاشة / ملء الشاشة"),
     "Bugün ve geçmişte vakti gelen {} hatırlatıcı": ("{} reminders due today or earlier",
                                                      "{} تذكيرات مستحقة اليوم أو قبله"),
     "{} hatırlatıcı": ("{} reminders", "{} تذكيرات"),

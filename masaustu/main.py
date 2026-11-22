@@ -29,7 +29,7 @@ import kullanim_sayac
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.17"
+APP_VERSION = "1.18"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1983,6 +1983,19 @@ class MainWindow(QWidget):
         # admin duyuruları (🔔)
         self.duyuru = duyuru_istemci.DuyuruIstemci(self, "bereket-defter", APP_VERSION, dil=i18n.lang, guncelle=self.open_update)
         crow.addWidget(self.duyuru.dugme)
+        # pencere düğmeleri: küçült, yarım/tam ekran, kapat (tam ekranda Windows başlığı görünmediği için)
+        crow.addSpacing(6)
+        for txt, tip, fn in (("—", _("Küçült"), self.showMinimized),
+                             ("❐", _("Yarım ekran / Tam ekran"), self.toggle_half),
+                             ("✕", _("Kapat"), self.close)):
+            b = QPushButton(txt)
+            b.setObjectName("light")
+            b.setToolTip(tip)
+            b.setFixedSize(38, 32)
+            b.setStyleSheet("padding:0; font-size:15px; font-weight:700;")
+            b.setCursor(Qt.PointingHandCursor)
+            b.clicked.connect(fn)
+            crow.addWidget(b)
         rbox.addLayout(brow)
         head.addLayout(rbox)
         root.addLayout(head)
@@ -2371,6 +2384,15 @@ class MainWindow(QWidget):
     def tick(self):
         n = datetime.now()
         self.clock.setText(f"{_(DAY_NAMES[n.weekday()])}, {n:%d.%m.%Y  %H:%M:%S}")
+
+    def toggle_half(self):
+        """Tam ekran ↔ ekranın yarısı (sol yarı) arasında geçiş."""
+        if self.isFullScreen() or self.isMaximized():
+            self.showNormal()
+            g = self.screen().availableGeometry()
+            self.setGeometry(g.x(), g.y(), g.width() // 2, g.height())
+        else:
+            self.showFullScreen()
 
     def toggle_full(self):
         self.showNormal() if self.isFullScreen() else self.showFullScreen()

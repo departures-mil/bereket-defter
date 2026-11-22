@@ -1,14 +1,14 @@
 {
- "surum": "1.17",
- "kod": "1_17",
- "dosya": "mobil-1_17.zip",
- "sha256": "194816efede285afa7b00910dff244fd12552f4a6aa0b1ced9ddfdffe878b96d",
- "boyut": 173578,
- "notlar": "v1.17: «Admin ile iletişime geç» düzeltildi — mesajlar yöneticiye güvenilir biçimde ulaşıyor; internet yoksa saklanıp sonra gönderiliyor.",
- "tarih": "2026-11-22 12:36",
+ "surum": "1.18",
+ "kod": "1_18",
+ "dosya": "mobil-1_18.zip",
+ "sha256": "488e4ef104694a3a52a7e37d0ae11eca3abc36fef5dc11cd67108251580789cb",
+ "boyut": 173740,
+ "notlar": "Sağ üstte Küçült ve Kapat düğmeleri (yeni APK 1.9 ile küçült)",
+ "tarih": "2026-11-22 16:18",
  "minNative": 15,
- "apkKod": "15",
- "apkDosya": "BereketDefter-15.apk",
- "apkBoyut": 453432,
- "apkSha256": "f3db377f452e40b7ee32b11e0ec4f9890a1a30b64effddf5b041a22323662d13"
+ "apkKod": "16",
+ "apkDosya": "BereketDefter-16.apk",
+ "apkBoyut": 465860,
+ "apkSha256": "cd9cf22cee6b058107814cf44abb800570ed5d778854c734b3e1a410e1fecf25"
 }

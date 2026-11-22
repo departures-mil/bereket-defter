@@ -195,7 +195,12 @@ const App = {
       this.bellBtn,
       h("button", { class: "icon-btn top-btn", type: "button", "aria-label": t("Menü"), title: t("Menü"), onclick: () => Forms.menu() },
         h("span", { class: "emo burger" }, "☰")),
-      h("div", { class: "top-group" }, this.syncBtn, this.updBtn));
+      h("div", { class: "top-group" }, this.syncBtn, this.updBtn,
+        bridgeHas("minimizeApp") ? h("button", { class: "icon-btn top-btn win-btn", type: "button", "aria-label": t("Küçült"), title: t("Küçült"),
+          onclick: () => bridge().minimizeApp() }, h("span", { class: "emo" }, "—")) : null,
+        bridgeHas("exitApp") ? h("button", { class: "icon-btn top-btn win-btn", type: "button", "aria-label": t("Kapat"), title: t("Kapat"),
+          onclick: async () => { if (await Dlg.confirm(t("Programdan çıkmak istiyor musunuz?"), t("Çıkış"))) bridge().exitApp(); } },
+          h("span", { class: "emo" }, "✕")) : null));
     this.bannerEl = h("div", { class: "banner", hidden: true, role: "alert", onclick: () => { this.bannerEl.hidden = true; Forms.reminders({ dueOnly: true }); } });
     const hero = h("div", { class: "hero" },
       h("div", { id: "quote", class: "quote" }, QUOTES[QUOTE_I]),

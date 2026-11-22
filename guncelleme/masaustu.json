@@ -1,9 +1,9 @@
 {
- "surum": "1.17",
- "kod": "1_17",
- "dosya": "masaustu-1_17.zip",
- "sha256": "fec99b7ef95304b4d30410cf144f51d21ebe1bd99b5dbd6dc280b0b0ad724a6f",
- "boyut": 191108,
- "notlar": "v1.17: «Admin ile iletişime geç» düzeltildi — mesajlar artık yöneticiye güvenilir biçimde ulaşıyor.",
- "tarih": "2026-11-22 12:36"
+ "surum": "1.18",
+ "kod": "1_18",
+ "dosya": "masaustu-1_18.zip",
+ "sha256": "9f5d7fd8a86c2b4600cdff121a6cdf79b98c689975bd8d2ce29dab16fec48b86",
+ "boyut": 191462,
+ "notlar": "Sağ üstte Küçült, Yarım/Tam ekran ve Kapat düğmeleri",
+ "tarih": "2026-11-22 16:18"
 }

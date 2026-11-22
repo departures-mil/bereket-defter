@@ -338,6 +338,20 @@
     goto :goto_0
 .end method
 
+.method public minimizeApp()V
+    .locals 2
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/bereket/alacakverecek/MainActivity$Bridge;->this$0:Lcom/bereket/alacakverecek/MainActivity;
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Lcom/bereket/alacakverecek/MainActivity;->moveTaskToBack(Z)Z
+
+    return-void
+.end method
+
 .method public nativeCode()I
     .locals 4
     .annotation runtime Landroid/webkit/JavascriptInterface;
