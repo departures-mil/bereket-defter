@@ -234,6 +234,14 @@ class SyncEngine:
     def _log(self, text):
         self.log.append(f"{datetime.now():%H:%M:%S} {text}")
 
+    # --- Wi‑Fi eşitleme (lan.py): istek motorun iş parçacığında, bulut eşitlemesiyle sırayla yürür
+    def lan_call(self, kind, body, timeout=180):
+        box = {"done": threading.Event(), "res": None}
+        self._q.put(("lan", {"kind": kind, "body": body, "box": box}))
+        if not box["done"].wait(timeout):
+            return None
+        return box["res"]
+
     # --- istekler (arayüz iş parçacığından çağrılır, hemen döner)
     def request(self, op, **kw):
         """op: 'sync' | 'signin' | 'signup' | 'signout'."""
@@ -266,6 +274,20 @@ class SyncEngine:
 
     def run_op(self, op, **kw):
         """İşlemi bu iş parçacığında yürütür ve sonucu (olay) döndürür; testlerde doğrudan çağrılabilir."""
+        if op == "lan":
+            box = kw.get("box") or {}
+            ev = {"type": "done", "op": "lan", "ok": False, "code": "", "detail": "", "changed": False}
+            try:
+                res = self._op_lan(kw.get("kind"), kw.get("body") or {})
+                ev.update(ok=True, changed=bool(res.get("_got")))
+            except Exception as e:
+                res = {"error": f"{type(e).__name__}: {e}"}
+                self._log("Wi‑Fi eşitleme hatası: " + traceback.format_exc())
+            box["res"] = res
+            if box.get("done"):
+                box["done"].set()
+            ev["time"] = datetime.now().strftime("%H:%M")
+            return ev
         ev = {"type": "done", "op": op, "ok": False, "code": "", "detail": "", "changed": False}
         try:
             res = getattr(self, "_op_" + op)(**kw) or {}
@@ -773,6 +795,135 @@ class SyncEngine:
         vals = {"tx_id": self._tid(con, d.s("tx")) or 0, "tx_uid": d.s("tx"), "action": d.s("action"),
                 "at": d.s("at") or dbm.now(), "old_values": d.s("old")}
         return self._upsert(con, "history", lid, did, rm, vals)
+
+    # Wi‑Fi eşitleme -------------------------------------------------------
+    def _all_fields(self, con):
+        """Bütün satırlar (kirli olsun olmasın) ve silme işaretleri, Firestore alan biçiminde: {col: [fields]}."""
+        out = {c: [] for c in COLS}
+
+        def add(col, f):
+            out[col].append({k: enc(v) for k, v in f.items()})
+        for p in con.execute("SELECT * FROM persons"):
+            f = {"id": p["uid"], "m": int(p["m"] or 0), "del": False}
+            f.update({k: p[k] or "" for k in PERSON_STR})
+            f.update({k: bool(p[k]) for k in PERSON_BOOL})
+            f["created_at"] = p["created_at"] or ""
+            add("persons", f)
+        for t in con.execute("SELECT t.*, p.uid puid FROM transactions t JOIN persons p ON p.id=t.person_id"):
+            add("tx", {"id": t["uid"], "m": int(t["m"] or 0), "del": False, "person": t["puid"], "ts": t["ts"],
+                       "direction": t["direction"], "currency": t["currency"], "amount": float(t["amount"]),
+                       "description": t["description"] or "", "created_at": t["created_at"] or "",
+                       "updated_at": t["updated_at"] or ""})
+        for d in con.execute("SELECT f.*, t.uid tuid FROM photos f JOIN transactions t ON t.id=f.tx_id").fetchall():
+            path = self.db.photo_path(d)
+            size = os.path.getsize(path) if os.path.isfile(path) else max(int(d["size"] or 0), 0)
+            ext = os.path.splitext(d["file"])[1].lower()
+            add("docs", {"id": d["uid"], "m": int(d["m"] or 0), "del": False, "tx": d["tuid"],
+                         "name": d["original_name"] or os.path.basename(d["file"]), "ext": ext,
+                         "mime": d["mime"] or mimetypes.guess_type("x" + ext)[0] or "", "size": size,
+                         "chunks": dbm.file_chunks(size), "added_at": d["added_at"] or ""})
+        for r in con.execute("SELECT r.*, p.uid puid FROM reminders r JOIN persons p ON p.id=r.person_id"):
+            add("rem", {"id": r["uid"], "m": int(r["m"] or 0), "del": False, "person": r["puid"], "kind": r["kind"],
+                        "currency": r["currency"], "amount": float(r["amount"] or 0), "due": r["due"] or "",
+                        "note": r["note"] or "", "done": bool(r["done"]), "created_at": r["created_at"] or ""})
+        for h in con.execute("SELECT * FROM history").fetchall():
+            add("hist", {"id": h["uid"], "m": int(h["m"] or 0), "del": False, "tx": h["tx_uid"] or "",
+                         "action": h["action"], "at": h["at"] or "", "old": self._hist_old(con, h)})
+        for tb in con.execute("SELECT * FROM tombstones"):
+            if tb["col"] in out:
+                add(tb["col"], {"id": tb["uid"], "m": int(tb["m"]), "del": True})
+        return out
+
+    def _op_lan(self, kind, body):
+        con = self.db.con
+        if kind == "sync":
+            got = 0
+            aside = []
+            incoming = body.get("docs") or {}
+            for col in COLS:  # ebeveynler önce (kişi → kayıt → belge/hatırlatıcı)
+                for fields in incoming.get(col) or []:
+                    if not isinstance(fields, dict):
+                        continue
+                    d = Doc(fields)
+                    did = d.s("id")
+                    if not did or not SAFE_ID.match(did) or self._lan_same(con, col, did, d):
+                        continue
+                    r = self._apply(con, col, did, d)
+                    if r == "orphan":
+                        aside.append((col, did, d))
+                    elif r == "changed":
+                        got += 1
+                        self._lan_dirty(con, col, did, d)
+            for col, did, d in aside:
+                if self._apply(con, col, did, d) == "changed":
+                    got += 1
+                    self._lan_dirty(con, col, did, d)
+            con.commit()
+            have = set(x for x in (body.get("have") or []) if isinstance(x, str))
+            need = []
+            for ph in con.execute("SELECT * FROM photos").fetchall():
+                if not os.path.isfile(self.db.photo_path(ph)) and ph["uid"] in have:
+                    need.append(ph["uid"])
+            docs = self._all_fields(con)
+            sent = sum(len(v) for v in docs.values())
+            if got:
+                self._log(f"Wi‑Fi eşitleme ({body.get('device') or 'telefon'}): değişen {got}")
+            return {"docs": docs, "need": need, "name": socket.gethostname(), "_got": got, "_sent": sent}
+        if kind == "blob":
+            uid = str(body.get("id") or "")
+            ph = con.execute("SELECT * FROM photos WHERE uid=?", (uid,)).fetchone()
+            path = self.db.photo_path(ph) if ph else ""
+            if not ph or not os.path.isfile(path):
+                return {"error": "missing"}
+            with open(path, "rb") as f:
+                return {"data": base64.b64encode(f.read()).decode("ascii")}
+        if kind == "upload":
+            uid = str(body.get("id") or "")
+            ph = con.execute("SELECT * FROM photos WHERE uid=?", (uid,)).fetchone()
+            if not ph:
+                return {"error": "unknown"}
+            data = base64.b64decode(body.get("data") or "")
+            if ph["size"] and len(data) != int(ph["size"]):
+                return {"error": "size"}
+            path = self.db.photo_path(ph)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".part"
+            with open(tmp, "wb") as f:
+                f.write(data)
+            os.replace(tmp, path)
+            # dosya artık burada: internet gelince parçaları bu bilgisayar da buluta yükleyebilir
+            con.execute("UPDATE photos SET blobs_up=0, dirty=1, size=? WHERE id=?", (len(data), ph["id"]))
+            con.commit()
+            return {"ok": True, "_got": 1}
+        return {"error": "kind"}
+
+    def _lan_same(self, con, col, did, d):
+        """Aynı sürüm (aynı m, aynı silinme durumu) zaten burada: dokunma — kirli işareti (buluta gidecek) korunur."""
+        rm, dele = d.int("m"), d.b("del")
+        if dele:
+            tb = con.execute("SELECT m FROM tombstones WHERE col=? AND uid=?", (col, did)).fetchone()
+            return bool(tb and tb["m"] == rm)
+        row = con.execute(f"SELECT m FROM {TABLE[col]} WHERE uid=?", (did,)).fetchone()
+        return bool(row and (row["m"] or 0) == rm)
+
+    def _lan_dirty(self, con, col, did, d):
+        """Wi‑Fi'dan gelen değişiklik buluta da gitsin (kirli). Belge dosyası henüz yoksa parçalar sonra yüklenir."""
+        if d.b("del"):
+            con.execute("UPDATE tombstones SET dirty=1 WHERE col=? AND uid=?", (col, did))
+            if not con.execute("SELECT 1 FROM tombstones WHERE col=? AND uid=?", (col, did)).fetchone():
+                try:
+                    con.execute("INSERT INTO tombstones(col, uid, m, dirty) VALUES(?,?,?,1)", (col, did, d.int("m")))
+                except Exception:
+                    pass
+            return
+        table = TABLE[col]
+        if col == "docs":
+            ph = con.execute("SELECT * FROM photos WHERE uid=?", (did,)).fetchone()
+            if ph and not os.path.isfile(self.db.photo_path(ph)):
+                return  # dosya gelince (upload) kirli yapılır
+            con.execute("UPDATE photos SET dirty=1, blobs_up=0 WHERE uid=?", (did,))
+            return
+        con.execute(f"UPDATE {table} SET dirty=1 WHERE uid=?", (did,))
 
     # belgeler ----------------------------------------------------------
     def _download(self, con):

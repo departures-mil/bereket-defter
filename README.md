@@ -5,6 +5,10 @@ kullanıcının Firebase hesabı üzerinden eşitlenir; **kayıtlar bu depoda bu
 
 - `masaustu/` — masaüstü programın kaynağı (kurulu programda `app\` klasörü).
 - `mobil/` — telefon uygulamasının web paketi (Android kabuğu içinde çalışır).
+- `android/` — telefon uygulamasının (APK) apktool ağacı (smali; Java kaynağı yok). APK: `python3 araclar/apk.py <bereket.jks> <şifre> <çıktı.apk>`
+  (imza anahtarı depoda değil: `C:\Claude Programlarım\_Anahtarlar\Bereket`). Sürüm `android/apktool.yml` (versionCode = nativeCode).
+- Wi‑Fi (internetsiz) eşitleme (1.14 / APK 1.8): masaüstü `masaustu/lan.py` (port 47341, eşleme kodu), telefon `mobil/js/lan.js`.
+  Bulut eşitlemesiyle aynı biçim ve aynı birleştirme kuralı; Wi‑Fi'dan gelen değişiklikler buluta da gönderilir.
 - `guncelleme/` — güncelleme paketleri ve bildirgeleri. Programlar yeni sürümü buradan indirir
   (`https://raw.githubusercontent.com/departures-mil/bereket-defter/main/guncelleme/<kanal>.json`), sha256 ile doğrular.
 - `araclar/yayinla.py` — yeni sürüm yayınlama aracı.
@@ -12,4 +16,5 @@ kullanıcının Firebase hesabı üzerinden eşitlenir; **kayıtlar bu depoda bu
 ## Yeni sürüm
 1. Sürümü iki tarafta aynı artır: `masaustu/main.py` (`APP_VERSION`) ve `mobil/js/core.js` (`APP_VERSION`).
 2. `python3 araclar/yayinla.py masaustu "notlar"` ve `python3 araclar/yayinla.py mobil "notlar"`
+   APK değiştiyse: `python3 araclar/yayinla.py mobil "notlar" --minNative <kod> --apk <dosya.apk> --apkKod <kod>` (telefon tek tuşla kurar)
 3. `git add -A && git commit -m "Bereket X.Y" && git push`

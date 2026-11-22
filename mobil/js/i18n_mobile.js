@@ -1,6 +1,23 @@
 /* Yalnızca telefon sürümünde olan metinler. Anahtar = Türkçe metin; değer = [English, العربية].
  * Masaüstü çevirileri i18n_desktop.js içindedir (masaüstü i18n.py'den üretilir). */
 window.I18N_MOBILE = {
+"Bilgisayara bağlanılıyor…": ["Connecting to the computer…", "جارٍ الاتصال بالحاسوب…"],
+"Kayıtlar birleştiriliyor…": ["Merging records…", "جارٍ دمج السجلات…"],
+"Belge gönderiliyor: {}": ["Sending document: {}", "جارٍ إرسال المستند: {}"],
+"Belge alınıyor: {}": ["Receiving document: {}", "جارٍ استلام المستند: {}"],
+"Kod yanlış. Bilgisayardaki ☁ Eşitleme penceresinde yazan 6 haneli kodu girin.": ["Wrong code. Enter the 6-digit code shown in the ☁ Sync window on the computer.", "الرمز غير صحيح. أدخل الرمز المكوّن من 6 أرقام الظاهر في نافذة ☁ المزامنة على الحاسوب."],
+"Bilgisayara ulaşılamadı. İkisi aynı Wi‑Fi'da mı, bilgisayarda Bereket Defter açık mı, adres doğru mu?": ["Could not reach the computer. Are both on the same Wi‑Fi, is Bereket Ledger open on the computer, is the address right?", "تعذّر الوصول إلى الحاسوب. هل الجهازان على شبكة Wi‑Fi نفسها، وهل البرنامج مفتوح على الحاسوب، وهل العنوان صحيح؟"],
+"Bilgisayarın adresini yazın (ör. 192.168.1.5).": ["Enter the computer's address (e.g. 192.168.1.5).", "اكتب عنوان الحاسوب (مثلاً 192.168.1.5)."],
+"Wi‑Fi eşitleme hatası: {}": ["Wi‑Fi sync error: {}", "خطأ في المزامنة عبر Wi‑Fi: {}"],
+"Wi‑Fi eşitleme için telefon uygulamasının yeni sürümü (1.8) gerekir: ⬆ Güncelleme'den kurun.": ["Wi‑Fi sync needs the new phone app (1.8): install it from ⬆ Update.", "تتطلب المزامنة عبر Wi‑Fi الإصدار الجديد من تطبيق الهاتف (1.8): ثبّته من ⬆ التحديث."],
+"Son Wi‑Fi eşitleme: {}": ["Last Wi‑Fi sync: {}", "آخر مزامنة عبر Wi‑Fi: {}"],
+"📶 Wi‑Fi ile eşitle": ["📶 Sync over Wi‑Fi", "📶 مزامنة عبر Wi‑Fi"],
+"Wi‑Fi eşitleme tamam: gelen {}, giden {}": ["Wi‑Fi sync done: received {}, sent {}", "اكتملت المزامنة عبر Wi‑Fi: وارد {}، صادر {}"],
+"{} belge": ["{} documents", "{} مستند"],
+"📶 Wi‑Fi ile eşitleme (internetsiz)": ["📶 Wi‑Fi sync (no internet)", "📶 المزامنة عبر Wi‑Fi (دون إنترنت)"],
+"İnternet yokken: telefon ve bilgisayar aynı modeme / Wi‑Fi'a bağlı olsun. Bilgisayardaki ☁ Eşitleme penceresinde yazan adresi ve kodu girin. Aynı bulut hesabındaysanız kod gerekmez.": ["Without internet: connect the phone and the computer to the same router / Wi‑Fi. Enter the address and code shown in the ☁ Sync window on the computer. No code is needed if both use the same cloud account.", "دون إنترنت: صِل الهاتف والحاسوب بالموجّه / شبكة Wi‑Fi نفسها. أدخل العنوان والرمز الظاهرين في نافذة ☁ المزامنة على الحاسوب. لا حاجة للرمز إذا كان الجهازان على حساب السحابة نفسه."],
+"Bilgisayarın adresi": ["Computer address", "عنوان الحاسوب"],
+"Kod": ["Code", "الرمز"],
 "✉ Admin ile iletişime geç": ["✉ Contact the admin", "✉ التواصل مع المسؤول"],
 "Programı geliştirmemiz için öneri, istek ve hata bildirimlerinizi yazın; mesajınız doğrudan yöneticiye ulaşır.": ["Send suggestions, requests and bug reports to help us improve the app; your message goes straight to the administrator.", "أرسل اقتراحاتك وطلباتك وبلاغات الأخطاء لمساعدتنا على تطوير التطبيق؛ تصل رسالتك مباشرة إلى المسؤول."],
 "Adınız (isteğe bağlı)": ["Your name (optional)", "اسمك (اختياري)"],

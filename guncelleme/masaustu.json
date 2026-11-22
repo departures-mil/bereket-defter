@@ -1,9 +1,9 @@
 {
- "surum": "1.13",
- "kod": "1_13",
- "dosya": "masaustu-1_13.zip",
- "sha256": "7751a9a7c2336b177e69325f1e782bb8c97fc590de01c9416356bb04567be725",
- "boyut": 174976,
- "notlar": "1.13: Ayarların sonuna 'Admin ile iletişime geç' bölümü eklendi. Kayıtlarınız olduğu gibi kalır.",
- "tarih": "2026-11-22 00:02"
+ "surum": "1.14",
+ "kod": "1_14",
+ "dosya": "masaustu-1_14.zip",
+ "sha256": "76774688920f61163173f7b046d6c66ed93af8075ac9fdbb82a45eca46ca1f4f",
+ "boyut": 180346,
+ "notlar": "1.14: 📶 Wi‑Fi ile internetsiz eşitleme (telefon ⇄ bilgisayar). ☁ Eşitleme penceresinde adres ve kod görünür; aynı Wi‑Fi'daki telefon internet olmadan eşitlenir. Kayıtlarınız silinmez, üst üste yazılmaz.",
+ "tarih": "2026-11-22 06:26"
 }

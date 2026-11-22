@@ -555,3 +555,25 @@ def _(text):
     if pair is None:
         return text
     return pair[0] if _lang == "en" else pair[1]
+
+
+# v1.14: Wi‑Fi (internetsiz) eşitleme
+T.update({
+    "📶 Wi‑Fi ile eşitleme (internetsiz)": ("📶 Wi‑Fi sync (no internet)", "📶 المزامنة عبر Wi‑Fi (دون إنترنت)"),
+    "Telefon ve bu bilgisayar aynı modeme / Wi‑Fi ağına bağlıyken internet olmadan da eşitlenir. "
+    "Telefonda: ☁ Eşitleme → 📶 Wi‑Fi ile eşitle → aşağıdaki adresi ve kodu yazın. "
+    "Aynı bulut hesabındaysanız kod sorulmaz. Kayıtlar silinmez, üst üste yazılmaz; son değişen kazanır.": (
+        "When the phone and this computer are on the same router / Wi‑Fi network they sync even without internet. "
+        "On the phone: ☁ Sync → 📶 Sync over Wi‑Fi → enter the address and code below. "
+        "If both use the same cloud account no code is asked. Nothing is deleted or blindly overwritten; the latest change wins.",
+        "عندما يكون الهاتف وهذا الحاسوب متصلين بالموجّه / شبكة Wi‑Fi نفسها تتم المزامنة حتى دون إنترنت. "
+        "في الهاتف: ☁ المزامنة ← 📶 المزامنة عبر Wi‑Fi ← أدخل العنوان والرمز أدناه. "
+        "إذا كان الجهازان على حساب السحابة نفسه فلا يُطلب الرمز. لا يُحذف شيء ولا يُكتب فوق شيء دون تحقق؛ يفوز آخر تعديل."),
+    "Yeni kod üret": ("Generate new code", "إنشاء رمز جديد"),
+    "Wi‑Fi eşitleme başlatılamadı: {}": ("Wi‑Fi sync could not be started: {}", "تعذّر تشغيل المزامنة عبر Wi‑Fi: {}"),
+    "Adres": ("Address", "العنوان"),
+    "Kod": ("Code", "الرمز"),
+    "Son Wi‑Fi eşitleme: {} · gelen {} · giden {}": ("Last Wi‑Fi sync: {} · received {} · sent {}",
+                                                    "آخر مزامنة عبر Wi‑Fi: {} · وارد {} · صادر {}"),
+    "telefon": ("phone", "الهاتف"),
+})

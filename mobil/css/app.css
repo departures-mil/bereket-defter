@@ -372,3 +372,7 @@ html[dir="rtl"] .sheet-head { padding: 8px 16px 8px 8px; }
 .settings h3 { margin: 0; color: var(--dark); }
 .settings .set-chk { display: flex; width: 100%; box-sizing: border-box; }
 .contact-box { display: grid; gap: 8px; margin-top: 14px; } .contact-box h3 { margin: 6px 0 0; } .contact-box p { margin: 0; }
+/* v1.14: Wi‑Fi eşitleme */
+.lan-box { border: 1px solid #cfe5df; border-radius: 12px; padding: 10px 12px; background: #f2faf7; display: grid; gap: 8px; }
+.lan-box h3 { margin: 0; font-size: 16px; color: var(--dark); }
+.lan-box p { margin: 0; }
