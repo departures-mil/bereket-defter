@@ -27,7 +27,7 @@ import guncelle
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.13"
+APP_VERSION = "1.14"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1462,6 +1462,36 @@ class SyncDialog(QDialog):
         brow.addWidget(self.b_now, 1, 0)
         brow.addWidget(self.b_out, 1, 1)
         left.addLayout(brow)
+        # --- Wi‑Fi (internetsiz) eşitleme: ikinci seçenek
+        lan = getattr(engine, "lan_server", None)
+        if lan is not None:
+            wbox = QFrame()
+            wbox.setStyleSheet("QFrame{background:#eef7f5;border-radius:12px;}")
+            wl = QVBoxLayout(wbox)
+            wl.setContentsMargins(12, 10, 12, 10)
+            wh = QLabel("<b>" + _("📶 Wi‑Fi ile eşitleme (internetsiz)") + "</b>")
+            wl.addWidget(wh)
+            wi = QLabel(_("Telefon ve bu bilgisayar aynı modeme / Wi‑Fi ağına bağlıyken internet olmadan da eşitlenir. "
+                          "Telefonda: ☁ Eşitleme → 📶 Wi‑Fi ile eşitle → aşağıdaki adresi ve kodu yazın. "
+                          "Aynı bulut hesabındaysanız kod sorulmaz. Kayıtlar silinmez, üst üste yazılmaz; son değişen kazanır."))
+            wi.setWordWrap(True)
+            wi.setObjectName("muted")
+            wi.setMinimumWidth(200)
+            wi.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+            wl.addWidget(wi)
+            self.lan_info = QLabel()
+            self.lan_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            self.lan_info.setLayoutDirection(Qt.LeftToRight)
+            self.lan_info.setStyleSheet("font-size:17px;font-weight:700;color:#06513f;")
+            wl.addWidget(self.lan_info)
+            self.lan_last = QLabel()
+            self.lan_last.setObjectName("muted")
+            wl.addWidget(self.lan_last)
+            nb = QPushButton(_("Yeni kod üret"))
+            nb.clicked.connect(lambda: (lan.new_code(), self.refresh_lan()))
+            wl.addWidget(nb, 0, Qt.AlignLeft if not i18n.is_rtl() else Qt.AlignRight)
+            left.addWidget(wbox)
+            self.refresh_lan()
         left.addStretch(1)
         close = QPushButton(_("Kapat"))
         close.clicked.connect(self.accept)
@@ -1496,6 +1526,21 @@ class SyncDialog(QDialog):
         self.refresh()
         self.resize(1100, max(700, self.sizeHint().height()))
 
+    def refresh_lan(self):
+        lan = getattr(self.engine, "lan_server", None)
+        if lan is None or not hasattr(self, "lan_info"):
+            return
+        import lan as lanmod
+        if not lan.running:
+            self.lan_info.setText(_("Wi‑Fi eşitleme başlatılamadı: {}").format(lan.error or "—"))
+            return
+        ips = lanmod.local_ips() or ["?"]
+        self.lan_info.setText(_("Adres") + ": " + "  /  ".join(f"{ip}:{lanmod.PORT}" for ip in ips) + "\n" +
+                              _("Kod") + ": " + lan.code())
+        last = lan.last
+        self.lan_last.setText(_("Son Wi‑Fi eşitleme: {} · gelen {} · giden {}").format(
+            last.get("name") or _("telefon"), last.get("got", 0), last.get("sent", 0)) if last else "")
+
     def show_advanced(self, on):
         self.emu.setVisible(on)
         self.emu_lbl.setVisible(on)
@@ -1522,6 +1567,8 @@ class SyncDialog(QDialog):
         if ev.get("type") == "done" and ev.get("ok") and ev.get("op") in ("signin", "signup"):
             self.pw.clear()
         self.refresh()
+        if ev.get("op") == "lan":
+            self.refresh_lan()
 
     def _start(self, op):
         api, proj = self.api.text().strip(), self.proj.text().strip()
@@ -2077,6 +2124,10 @@ class MainWindow(QWidget):
         if not hasattr(self.db, "sync_engine"):  # dil değişince pencere yeniden kurulur; motor aynı kalır
             self.db.sync_engine = SyncEngine(self.db.dir, self.db.path)
         self.sync = self.db.sync_engine
+        if not hasattr(self.sync, "lan_server"):  # Wi‑Fi (internetsiz) eşitleme sunucusu, program açıkken
+            import lan as lanmod
+            self.sync.lan_server = lanmod.LanServer(self.sync, APP_VERSION)
+            self.sync.lan_server.start()
         self.sync_dlg = None
         self.sync_wanted = False
         self.sync_refresh_pending = False

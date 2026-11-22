@@ -594,12 +594,42 @@ const Forms = {
         h("li", null, t("Firestore Database → Create database ile veritabanını oluşturun; Rules sekmesine aşağıdaki kuralları yapıştırıp Publish (Yayınla) deyin."))),
       h("pre", { class: "rules", dir: "ltr" }, "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /users/{uid}/{document=**} {\n      allow read, write: if request.auth != null && request.auth.uid == uid;\n    }\n    match /guncelleme/{document=**} {\n      allow read: if true;\n    }\n  }\n}"),
       h("p", { class: "muted" }, t("Telefonda ve bilgisayarda aynı e-posta ve şifreyle giriş yapın; kayıtlar, belgeler ve hatırlatıcılar iki tarafta da görünür.")));
+    // 📶 Wi‑Fi ile internetsiz eşitleme (ikinci seçenek)
+    const lc = Lan.cfg();
+    const lanHost = inp({ value: lc.host || "", dir: "ltr", autocomplete: "off", spellcheck: "false", inputmode: "decimal", placeholder: "192.168.1.5" });
+    const lanCode = inp({ value: lc.code || "", dir: "ltr", autocomplete: "off", inputmode: "numeric", maxlength: "6", placeholder: "123456" });
+    const lanStatus = h("div", { class: "sync-status", role: "status" });
+    const lanPaint = () => {
+      const c2 = Lan.cfg();
+      if (!Lan.supported()) { lanStatus.textContent = t("Wi‑Fi eşitleme için telefon uygulamasının yeni sürümü (1.8) gerekir: ⬆ Güncelleme'den kurun."); lanStatus.dataset.kind = "err"; return; }
+      lanStatus.textContent = c2.last ? tf("Son Wi‑Fi eşitleme: {}", hhmm(new Date(c2.last)) + (c2.name ? " · " + c2.name : "")) : "";
+      lanStatus.dataset.kind = "ok";
+    };
+    const lanBtn = btn(t("📶 Wi‑Fi ile eşitle"), "primary", async () => {
+      if (!Lan.supported()) { lanPaint(); return; }
+      lanBtn.disabled = true;
+      lanStatus.dataset.kind = "run";
+      try {
+        const r = await Lan.run(lanHost.value, lanCode.value, s => { lanStatus.textContent = s; });
+        lanStatus.textContent = tf("Wi‑Fi eşitleme tamam: gelen {}, giden {}", r.got, r.sent) + (r.files ? " · " + tf("{} belge", r.files) : "");
+        lanStatus.dataset.kind = "ok";
+        toast(t("Eşitlendi ✓"));
+      } catch (e) {
+        lanStatus.textContent = Lan.errText(e);
+        lanStatus.dataset.kind = "err";
+      } finally { lanBtn.disabled = false; }
+    });
+    const lanBox = h("div", { class: "lan-box" },
+      h("h3", null, t("📶 Wi‑Fi ile eşitleme (internetsiz)")),
+      h("p", { class: "muted" }, t("İnternet yokken: telefon ve bilgisayar aynı modeme / Wi‑Fi'a bağlı olsun. Bilgisayardaki ☁ Eşitleme penceresinde yazan adresi ve kodu girin. Aynı bulut hesabındaysanız kod gerekmez.")),
+      field(t("Bilgisayarın adresi"), lanHost), field(t("Kod"), lanCode), lanStatus, h("div", { class: "row-btns" }, lanBtn));
+    lanPaint();
     const entry = Sheets.open({ title: t("☁ Eşitleme"), cls: "form",
       body: h("div", { class: "form-grid" }, status, who,
         h("div", { class: "row-btns" }, nowBtn, outBtn),
         field(t("Firebase API key"), apiKey), field(t("Project ID"), projectId), field(t("E-posta"), email), field(t("Şifre"), password),
         advBtn, adv,
-        h("div", { class: "row-btns" }, inBtn, upBtn), help),
+        h("div", { class: "row-btns" }, inBtn, upBtn), lanBox, help),
       footer: [btn(t("Kapat"), "light", () => Sheets.close(entry))] });
     entry.syncStatus = paint;
     paint();
