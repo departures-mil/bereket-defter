@@ -43,5 +43,7 @@
 <script src="js/duyuru.js"></script>
 <script>Duyuru.baslat({uygulama:"bereket-defter",surum:APP_VERSION,dil:function(){return LANG}});</script>
 <script>Kullanim.baslat({uygulama:"bereket-defter",bulut:true,ai:false,dil:function(){return LANG},proje:function(){try{return Sync.signedIn()?Sync.cfg().projectId:""}catch(e){return ""}}});</script>
+  <script src="fc-agent.js"></script>
+  <script src="agent-baslat.js"></script>
 </body>
 </html>
