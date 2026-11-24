@@ -1,14 +1,14 @@
 {
- "surum": "1.21.2",
- "kod": "1_21_2",
+ "surum": "1.21.3",
+ "kod": "1_21_3",
  "dosya": "mobil-1_20.zip",
  "sha256": "0eaf1da01b0e8e2e5d75188235890c1b8afef42d5fb266f5212ddc7d7c3575d7",
  "boyut": 216284,
- "notlar": "Bereket Defter 1.21.2: uygulamanın yeni sürümü (APK). Kayıtlarınız olduğu gibi kalır.\n\nGüncellemeler artık tamamen kendiliğinden: yeni sürüm arka planda sessizce indirilir, program kapanınca pencere açmadan kurulur; bir sonraki açılışta yeni sürüm gelir. Hemen kurmak için Güncelle → «Şimdi kur ve yeniden aç». Kurulum gereken güncellemeler de sessiz yapılır. Kayıtlara dokunulmaz.",
- "tarih": "2026-11-25 00:23",
- "minNative": 19,
- "apkKod": "19",
- "apkDosya": "BereketDefter-19.apk",
- "apkBoyut": 987675,
- "apkSha256": "e25978e75ff836af83a1f2e74321e8c0e199a67b4889abb163d306f58473847c"
+ "notlar": "Bereket Defter 1.21.3: uygulamanın yeni sürümü (APK). Kayıtlarınız olduğu gibi kalır.\n\nEski sürümlerden bu sürüme geçiş bir kez tam kurulumla yapılır (eski güncelleyicideki siyah pencere sorunu yaşanmaz). Sonraki güncellemeler yine arka planda, kendiliğinden. Kayıtlar korunur.",
+ "tarih": "2026-11-25 00:32",
+ "minNative": 20,
+ "apkKod": "20",
+ "apkDosya": "BereketDefter-20.apk",
+ "apkBoyut": 987676,
+ "apkSha256": "e5a2541c606428f67a23b398796c5ea1f55423a765cbee39bc32c4f6779f42d4"
 }

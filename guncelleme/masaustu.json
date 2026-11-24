@@ -1,9 +1,9 @@
 {
- "surum": "1.21.2",
- "kod": "1_21_2",
- "dosya": "masaustu-1_21_2.zip",
- "sha256": "104c5c298a770b085a92aa95485489caf60cdcef0473eb45f70b50b1964d221b",
- "boyut": 212156,
- "notlar": "Bereket Defter 1.21.2 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nGüncellemeler artık tamamen kendiliğinden: yeni sürüm arka planda sessizce indirilir, program kapanınca pencere açmadan kurulur; bir sonraki açılışta yeni sürüm gelir. Hemen kurmak için Güncelle → «Şimdi kur ve yeniden aç». Kurulum gereken güncellemeler de sessiz yapılır. Kayıtlara dokunulmaz.",
- "tarih": "2026-11-25 00:23"
+ "surum": "1.21.3",
+ "kod": "1_21_3",
+ "dosya": "masaustu-1_21_3.zip",
+ "sha256": "62034feea4cde1baffc0311c1458888dbc3693bf8fa5dff34b8d5007732c7564",
+ "boyut": 212155,
+ "notlar": "Bereket Defter 1.21.3 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nEski sürümlerden bu sürüme geçiş bir kez tam kurulumla yapılır (eski güncelleyicideki siyah pencere sorunu yaşanmaz). Sonraki güncellemeler yine arka planda, kendiliğinden. Kayıtlar korunur.",
+ "tarih": "2026-11-25 00:32"
 }
