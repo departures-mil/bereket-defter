@@ -38,8 +38,8 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 VIAddVersionKey "FileDescription" "${APPNAME} kurulumu"
 VIAddVersionKey "LegalCopyright" "departures-mil"
 
-!define MUI_ICON "${__FILEDIR__}\..\masaustu\assets\logo.ico"
-!define MUI_UNICON "${__FILEDIR__}\..\masaustu\assets\logo.ico"
+!define MUI_ICON "..\masaustu\assets\logo.ico"
+!define MUI_UNICON "..\masaustu\assets\logo.ico"
 !define MUI_INSTFILESPAGE_COLORS "FFFFFF 0F172A"
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_UNPAGE_INSTFILES
