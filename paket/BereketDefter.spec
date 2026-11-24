@@ -1,12 +1,12 @@
 # PyInstaller one-dir — Bereket Defter masaüstü (CI: windows-latest). Çıktı: dist/BereketDefter/ (BereketDefter.exe + _internal/)
 # win-app kanalı bu klasörün fcpack zip'idir (python -m fccore.fcpack), win-setup kanalı NSIS kurulumu (paket/kurulum.nsi).
 import os
-from PyInstaller.utils.hooks import collect_data_files
 
 KOK = os.path.abspath(os.path.join(SPECPATH, '..'))
 SRC = os.path.join(KOK, 'masaustu')
 datas = [(os.path.join(SRC, 'assets'), 'assets')]
-datas += collect_data_files('fccore')            # yazı tipleri + lisanslar (ZORUNLU)
+# yazı tipleri + lisanslar (ZORUNLU; fccore depoda kopya olduğu için collect_data_files bulamaz → açıkça)
+datas += [(os.path.join(SRC, 'fccore', 'fonts'), os.path.join('fccore', 'fonts'))]
 
 a = Analysis([os.path.join(SRC, 'main.py')], pathex=[SRC], binaries=[], datas=datas,
              hiddenimports=['PySide6.QtSvg', 'PySide6.QtPrintSupport', 'fc_agent', 'lan', 'notlar', 'surum'],
