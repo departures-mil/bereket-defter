@@ -1,9 +1,9 @@
 {
- "surum": "1.21.1",
- "kod": "1_21_1",
- "dosya": "masaustu-1_21_1.zip",
- "sha256": "e0f6255710242b0a5fe8963b7855c988fa684e47b1bbfa83a2154c5f1f60404f",
+ "surum": "1.21.2",
+ "kod": "1_21_2",
+ "dosya": "masaustu-1_21_2.zip",
+ "sha256": "104c5c298a770b085a92aa95485489caf60cdcef0473eb45f70b50b1964d221b",
  "boyut": 212156,
- "notlar": "Bereket Defter 1.21.1 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nDefter ekranındaki hadisler İngilizce ve Arapça (asıl metniyle) gösterilir\nSürüm rozeti tam sürümü gösterir (v1.21.1)\nArapça: kalan süre \"د / ث\" ile; Asistan Agent kartında metin kesilmiyor\nSol alttaki ✦ düğmesinin simgesi yeniden görünüyor",
- "tarih": "2026-11-24 18:28"
+ "notlar": "Bereket Defter 1.21.2 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nGüncellemeler artık tamamen kendiliğinden: yeni sürüm arka planda sessizce indirilir, program kapanınca pencere açmadan kurulur; bir sonraki açılışta yeni sürüm gelir. Hemen kurmak için Güncelle → «Şimdi kur ve yeniden aç». Kurulum gereken güncellemeler de sessiz yapılır. Kayıtlara dokunulmaz.",
+ "tarih": "2026-11-25 00:23"
 }
