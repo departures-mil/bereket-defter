@@ -1,5 +1,10 @@
 /* OTOMATİK: araclar/surum_yaz.py ← masaustu/notlar.py ("neler yeni" penceresi). Elle düzenlemeyin. */
 window.BEREKET_NOTES = {
+ "1.21.2": {
+  "tr": "Güncellemeler artık tamamen kendiliğinden: yeni sürüm arka planda sessizce indirilir, program kapanınca pencere açmadan kurulur; bir sonraki açılışta yeni sürüm gelir. Hemen kurmak için Güncelle → «Şimdi kur ve yeniden aç». Kurulum gereken güncellemeler de sessiz yapılır. Kayıtlara dokunulmaz.",
+  "en": "Updates are now fully automatic: the new version downloads quietly in the background and installs without any window when the program closes; the next start opens the new version. To install right away: Update → «Install now and reopen». Updates that need the installer also run silently. Records are not touched.",
+  "ar": "أصبحت التحديثات تلقائية بالكامل: يُنزَّل الإصدار الجديد بهدوء في الخلفية ويُثبَّت دون أي نافذة عند إغلاق البرنامج، ويُفتح الإصدار الجديد في المرة التالية. للتثبيت فوراً: تحديث ← «ثبّت الآن وأعد الفتح». التحديثات التي تحتاج إلى برنامج التثبيت تتم بصمت أيضاً. لا تُمَسّ السجلات."
+ },
  "1.21.1": {
   "tr": "Defter ekranındaki hadisler İngilizce ve Arapça (asıl metniyle) gösterilir\nSürüm rozeti tam sürümü gösterir (v1.21.1)\nArapça: kalan süre \"د / ث\" ile; Asistan Agent kartında metin kesilmiyor\nSol alttaki ✦ düğmesinin simgesi yeniden görünüyor",
   "en": "The hadiths on the ledger screen are shown in English and Arabic (original text)\nThe version badge shows the full version (v1.21.1)\nArabic: remaining time uses \"د / ث\"; text in the Assistant Agent card is no longer cut off\nThe ✦ button at the bottom left shows its icon again",
