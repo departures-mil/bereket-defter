@@ -2485,7 +2485,8 @@ def main():
             if fccore.storage.get("whatsnew.seen") is None:
                 fccore.storage.set("whatsnew.seen", "1.20.0")
     fcstyle.register_scheme("klasik", dark=KLASIK["dark"], light=KLASIK["light"], label=KLASIK["label"])
-    core = fccore.init(app, app_id=APP_ID, repo="bereket-defter", version=APP_VERSION, data_dir=db.dir, announcements=True)
+    core = fccore.init(app, app_id=APP_ID, repo="bereket-defter", version=APP_VERSION, data_dir=db.dir, announcements=True,
+                       agent=False)   # kendi Asistan Agent bağlantısı (fc_agent.py)
     from fccore import whatsnew
     from notlar import NOTES
     whatsnew.cfg["notes"] = lambda v: NOTES.get(str(v))
