@@ -7,3 +7,7 @@ Kopyalanan (değiştirmeden):
 - python/fc_agent.py → masaustu/fc_agent.py (Asistan Agent; fccore'da henüz yok)
 Yerel ek (çekirdekte değil): android/java/com/bereket/alacakverecek/FcGuncelle.java — apktool/smali APK için
   ApkPatchInstaller yerine: indirme + FCD1 yama + SHA-256 + mevcut FilesProvider ile kurulum.
+Yerel düzeltmeler (1.21.1; çekirdeğe önerildi):
+- masaustu/fccore/window.py: sürüm rozeti tam sürüm vX.Y.Z (ortak-cekirdek 586781e ile aynı).
+- masaustu/fc_agent.py: ✦ yüzen düğmesine padding:0 (uygulama QSS'i simgeyi siliyordu); ayar kartındaki onay kutuları
+  kaydırmalı etiketle (Arapça uzun metin kartı genişletip kesiliyordu).

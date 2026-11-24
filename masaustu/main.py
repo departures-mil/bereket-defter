@@ -1606,7 +1606,7 @@ class MainWindow(QWidget):
         head = QHBoxLayout()
         head.setSpacing(12)
         self.quote_i = random.randrange(len(QUOTES))
-        self.quote = QLabel(QUOTES[self.quote_i])
+        self.quote = QLabel(_(QUOTES[self.quote_i]))
         self.quote.setObjectName("quote")
         self.quote.setWordWrap(True)
         self.quote.setMinimumWidth(200)
@@ -1898,7 +1898,7 @@ class MainWindow(QWidget):
     # --- yardımcılar
     def next_quote(self):
         self.quote_i = (self.quote_i + 1) % len(QUOTES)
-        self.quote.setText(QUOTES[self.quote_i])
+        self.quote.setText(_(QUOTES[self.quote_i]))
 
     def tick(self):
         n = datetime.now()

@@ -149,7 +149,7 @@ const App = {
     Rem.check(false);
     Rem.scheduleAll();
     setInterval(() => Rem.check(true), 30000);
-    setInterval(() => { QUOTE_I = (QUOTE_I + 1) % QUOTES.length; const q = $("#quote"); if (q) q.textContent = QUOTES[QUOTE_I]; }, 10000);
+    setInterval(() => { QUOTE_I = (QUOTE_I + 1) % QUOTES.length; const q = $("#quote"); if (q) q.textContent = t(QUOTES[QUOTE_I]); }, 10000);
     setInterval(() => this.renderClock(), 15000);
     setTimeout(() => {
       if (Store.reminders({ until: today2359() }).length && !Sheets.stack.length) Forms.reminders({ dueOnly: true });
@@ -189,7 +189,7 @@ const App = {
     this.topEl = top;
     this.bannerEl = h("div", { class: "banner", hidden: true, role: "alert", onclick: () => { this.bannerEl.hidden = true; Forms.reminders({ dueOnly: true }); } });
     const hero = h("div", { class: "hero" },
-      h("div", { id: "quote", class: "quote" }, QUOTES[QUOTE_I]),
+      h("div", { id: "quote", class: "quote" }, t(QUOTES[QUOTE_I])),
       h("div", { id: "clock", class: "clock" }));
 
     // sol: Genel Durum + kişiler
