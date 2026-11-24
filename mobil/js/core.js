@@ -1,7 +1,7 @@
 /* Bereket Alacak-Verecek Defteri — telefon sürümü: sabitler, dil, biçimlendirme, yardımcılar. */
 'use strict';
 
-const APP_VERSION = "1.20";
+const APP_VERSION = "1.21.0";   // tek kaynak: masaustu/surum.py (araclar/surum_yaz.py ikisini birlikte yazar)
 const APP_TITLE = "Bereket Alacak-Verecek Defteri";
 const CURRENCIES = ["USD", "TRY", "SYP"];
 const CURRENCY_NAMES = { USD: "Dolar ($)", TRY: "Türk Lirası (₺)", SYP: "Suriye Lirası (£S)" };
@@ -45,7 +45,7 @@ const QUOTES = [
 ];
 let QUOTE_I = Math.floor(Math.random() * QUOTES.length);
 const DAY_NAMES = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
-const GREEN = "#0f8f6a", RED = "#c0392b";
+const GREEN = "var(--ok-text)", RED = "var(--danger-text)";   // renkler seçili şemadan
 const LANGS = { tr: "Türkçe", en: "English", ar: "العربية" };
 
 /* ------------------------------------------------------------------ dil */
@@ -67,6 +67,7 @@ function setLang(l) {
   LANG = LANGS[l] ? l : "tr";
   try { localStorage.setItem("bereket_lang", LANG); } catch (e) { /* yok */ }
   applyLangToDocument();
+  try { if (window.FC && FC.i18n && FC.i18n.lang() !== LANG) FC.i18n.set(LANG); } catch (e) { /* yok */ }
 }
 function applyLangToDocument() {
   document.documentElement.lang = LANG;

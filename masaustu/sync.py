@@ -4,7 +4,6 @@ Sözleşme: alacak-verecek-mobil/ESITLEME_SPEC.md (bölüm 1-6). Ağ işleri tek
 (kendi SQLite bağlantısıyla) yapılır; arayüz `events` kuyruğunu okur (QTimer ile), hiçbir zaman beklemez.
 Ayarlar ve oturum <veri klasörü>/esitleme.json dosyasında tutulur (şifre asla kaydedilmez).
 """
-import kullanim_sayac
 import base64
 import collections
 import http.client
@@ -24,6 +23,15 @@ import urllib.request
 from datetime import datetime
 
 import db as dbm
+
+
+def _count(method, url, body, status, payload):
+    """Ayarlar → Kullanım Limitleri (ortak çekirdek fccore.usage; kendi Firebase hesabınızın günlük sınırı)."""
+    try:
+        from fccore import usage
+        usage.count_http(method, url, body, status, payload)
+    except Exception:
+        pass
 
 COLS = ("persons", "tx", "docs", "rem", "hist")
 TABLE = {"persons": "persons", "tx": "transactions", "docs": "photos", "rem": "reminders", "hist": "history"}
@@ -202,7 +210,7 @@ class SyncEngine:
 
     # --- ayarlar
     DEFAULT = {"apiKey": "", "projectId": "", "emulator": "", "email": "", "uid": "", "refreshToken": "",
-               "binding": "", "cursors": {}, "lastSync": ""}
+               "binding": "", "cursors": {}, "lastSync": "", "lanCode": ""}
 
     def _load(self):
         cfg = dict(self.DEFAULT)
@@ -353,7 +361,7 @@ class SyncEngine:
             with opener.open(req, timeout=timeout) as r:
                 raw = r.read()
                 out = r.status, (json.loads(raw) if raw else None)
-                kullanim_sayac.kaydet(method, url, body, out[0], out[1])  # Ayarlar > Kullanım Limitleri
+                _count(method, url, body, out[0], out[1])
                 return out
         except urllib.error.HTTPError as e:
             try:
@@ -363,7 +371,7 @@ class SyncEngine:
                 payload = {"error": {"message": f"HTTP {e.code}"}}
             if isinstance(payload, list) and payload:
                 payload = payload[0]
-            kullanim_sayac.kaydet(method, url, body, e.code, payload)
+            _count(method, url, body, e.code, payload)
             return e.code, payload if isinstance(payload, dict) else {}
         except (urllib.error.URLError, OSError, socket.timeout, http.client.HTTPException, ValueError) as e:
             raise SyncError("NETWORK", str(getattr(e, "reason", e)))
@@ -676,7 +684,15 @@ class SyncEngine:
         return changed > 0, changed
 
     def _delete_local(self, con, table, rid):
+        """Başka cihazda silinen kayıt bu cihazda kalıcı silinmez: önce arşivlenir (Ayarlar → Arşiv'den geri alınabilir)."""
         db = self.db
+        tur = {"persons": "persons", "transactions": "tx", "photos": "docs", "reminders": "rem"}.get(table)
+        if tur:
+            try:
+                db.archive(tur, rid, kaynak="uzak")
+            except Exception as e:
+                self._log(f"arşivlenemedi ({table}/{rid}): {e}")
+                return
         if table == "persons":
             for t in con.execute("SELECT id FROM transactions WHERE person_id=?", (rid,)).fetchall():
                 self._delete_files(con, t["id"])
@@ -712,6 +728,13 @@ class SyncEngine:
             return "same"
         if local and not local["dirty"] and (local["m"] or 0) == rm:
             return "same"
+        if local and local["dirty"]:
+            # çakışma: bu cihazdaki gönderilmemiş değişiklik daha eski → yeni olan kalır, eski hal yedeğe
+            try:
+                old = con.execute(f"SELECT * FROM {table} WHERE id=?", (local["id"],)).fetchone()
+                self.db.save_conflict(col, did, old)
+            except Exception as e:
+                self._log(f"çakışma yedeği yazılamadı ({col}/{did}): {e}")
         try:
             r = getattr(self, "_up_" + col)(con, did, d, rm, local["id"] if local else None)
         except Exception as e:  # sqlite kısıtı vb.: bu belgeyi atla

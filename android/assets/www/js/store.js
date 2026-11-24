@@ -109,12 +109,43 @@ const Store = {
   tomb(col, id, quiet) {
     const old = this.data[col].get(id);
     if (!old || old.del) return;
+    this.archive(col, old, "yerel");
     const row = { id, m: this._nextM(old), del: true, dirty: 1 };
-    if (col === "docs") { row._ch = old.chunks || 0; this.delBlob(id); }
+    if (col === "docs") row._ch = old.chunks || 0;   // v1.21: belge dosyası silinmez (arşivden geri alınabilir)
     this.data[col].set(id, row);
     this._put(col, row).catch(e => this._logErr(e));
     if (!quiet) this.changed();
   },
+  /* ---------------- v1.21: kalıcı silme yok — silinen kayıt arşive, çakışmada eski hal yedeğe (meta: arsiv / cakisma) */
+  archive(col, row, kaynak) {
+    if (!row || row.del) return;
+    const a = (this.meta.arsiv || []).slice(0, 499);
+    const r = Object.assign({}, row); delete r.dirty;
+    a.unshift({ at: Date.now(), kaynak: kaynak || "yerel", col, row: r });
+    this.setMeta("arsiv", a);
+  },
+  conflict(col, row) {
+    if (!row || row.del) return;
+    const a = (this.meta.cakisma || []).slice(0, 499);
+    const r = Object.assign({}, row); delete r.dirty;
+    a.unshift({ at: Date.now(), col, row: r });
+    this.setMeta("cakisma", a);
+  },
+  /** arşivdeki kaydı geri koyar (aynı kimlik, yeni değişiklik zamanı → diğer cihazlara da geri gelir). false: bağlı kişi/kayıt yok */
+  restore(i) {
+    const a = (this.meta.arsiv || []).slice();
+    const it = a[i];
+    if (!it) return false;
+    const r = Object.assign({}, it.row);
+    if ((it.col === "tx" || it.col === "rem") && !this.person(r.person)) return false;
+    if (it.col === "docs" && !this.tx(r.tx)) return false;
+    if (it.col === "docs") r.bu = this.blobIds.has(r.id) ? 0 : 1;
+    this.save(it.col, r);
+    a.splice(i, 1);
+    this.setMeta("arsiv", a);
+    return true;
+  },
+
   /** eşitleme: uzak satırı yerel hale getirir (dirty=0) */
   putRemote(col, row) { this.data[col].set(row.id, row); return row; },
   flush(col, rows) { return this._put(col, rows).catch(e => this._logErr(e)); },

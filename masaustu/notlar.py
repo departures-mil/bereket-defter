@@ -1,0 +1,21 @@
+"""Sürüm notları ("neler yeni" penceresi + GitHub sürüm notları). En yeni sürüm EN ÜSTTE.
+araclar/surum_yaz.py ilk kaydı release-notes.json'a yazar (CI latest.json notları)."""
+NOTES = {
+    "1.21.0": {
+        "tr": "Yeni görünüm (Falcon) ve renk şeması seçici; eski yeşil görünüm \"Klasik\" olarak seçilebilir, koyu/açık tema, yazı boyutu\n"
+              "Sağ üstte Eşitle · Wi‑Fi · Güncelle · tema · dil | Küçült · Orta · Tam ekran · Kapat\n"
+              "Tek tuşla güncelleme: yalnızca değişen kısımlar iner (yüzde, MB, kalan, hız); bilgisayarda kurulum programı\n"
+              "Hiçbir kayıt kalıcı silinmez: başka cihazda silinenler Ayarlar → Arşiv'e gider, çakışmada eski hal yedeklenir\n"
+              "İlk açılış rehberi (kendi Firebase'iniz), otomatik hata raporu, Admin ile iletişim Ayarlar'ın en sonunda",
+        "en": "New look (Falcon) with a colour scheme picker; the old green look is available as \"Classic\", dark/light theme, font size\n"
+              "Top right: Sync · Wi‑Fi · Update · theme · language | Minimize · Half · Full screen · Close\n"
+              "One-click updates: only the changed parts are downloaded (percent, MB, remaining, speed); an installer on the computer\n"
+              "No record is ever deleted for good: records deleted on another device go to Settings → Archive, conflicts keep a backup\n"
+              "First-run guide (your own Firebase), automatic error reports, Contact the admin at the end of Settings",
+        "ar": "مظهر جديد (Falcon) مع اختيار نظام الألوان؛ المظهر الأخضر القديم متاح باسم «الكلاسيكي»، وسمة داكنة/فاتحة وحجم الخط\n"
+              "أعلى اليمين: مزامنة · Wi‑Fi · تحديث · السمة · اللغة | تصغير · نصف · ملء الشاشة · إغلاق\n"
+              "تحديث بضغطة واحدة: تُنزَّل الأجزاء المتغيرة فقط (النسبة، الميغابايت، المتبقي، السرعة)؛ ومثبّت على الحاسوب\n"
+              "لا يُحذف أي سجل نهائياً: ما يُحذف على جهاز آخر ينتقل إلى الإعدادات ← الأرشيف، وعند التعارض تُحفظ نسخة احتياطية\n"
+              "دليل التشغيل الأول (Firebase الخاص بك)، وتقارير الأخطاء التلقائية، والتواصل مع المسؤول في آخر الإعدادات",
+    },
+}

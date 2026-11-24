@@ -143,9 +143,7 @@ const App = {
     }
     Store.onChange.push(() => { Sync.runSoon(3000); Rem.scheduleAll(); });
     Sync.listeners.push(() => this.renderSyncBtn());
-    Upd.listeners.push(() => this.renderUpdBtn());
     this.build();
-    Upd.init();
     this.wideMq.addEventListener ? this.wideMq.addEventListener("change", () => this.applyView())
       : this.wideMq.addListener(() => this.applyView());
     Rem.check(false);
@@ -162,7 +160,6 @@ const App = {
     });
     window.onAndroidBack = () => this.back();
     window.onAndroidReminder = id => {
-      if (String(id || "").startsWith("upd_")) { Upd.popupWanted = false; if (Viewer.active) Viewer.close(); Sheets.closeAll(); Forms.update(); return; }
       Rem.check(false); if (Viewer.active) Viewer.close(); Sheets.closeAll(); Forms.reminders({ dueOnly: true }); };
     window.onAndroidSaved = ok => { if (ok === true || ok === "true") toast(t("Kaydedildi")); };
   },
@@ -182,25 +179,14 @@ const App = {
     this.bellBadge = h("span", { class: "badge", hidden: true });
     this.bellBtn = h("button", { class: "icon-btn top-btn bell", type: "button", "aria-label": t("🔔 Hatırlatıcılar"), title: t("🔔 Hatırlatıcılar"),
       onclick: () => Forms.reminders({}) }, h("span", { class: "emo" }, "🔔"), this.bellBadge);
-    // sağ üst köşe: ☁ Eşitle (dokun: şimdi eşitle, basılı tut: ayarlar) + ⬆ Güncelle (her zaman görünür)
-    this.syncBtn = h("button", { class: "icon-btn top-btn sync lbl-btn", type: "button", "aria-label": t("☁ Eşitleme"), title: t("☁ Eşitleme"),
-      onclick: () => this.syncNow(), oncontextmenu: e => { e.preventDefault(); Forms.sync(); } },
-      h("span", { class: "emo" }, "☁"), h("span", { class: "sdot" }), h("span", { class: "blbl" }, t("Eşitle")));
-    this.updLbl = h("span", { class: "blbl" }, t("Güncelle"));
-    this.updBtn = h("button", { class: "icon-btn top-btn upd lbl-btn", type: "button", "aria-label": t("⬆ Güncelleme"),
-      title: t("⬆ Güncelleme"), onclick: () => Forms.update() }, h("span", { class: "emo" }, "⬆"), this.updLbl);
+    // sağ üst: ortak çekirdek üst çubuğu (Eşitle · Wi‑Fi · Güncelle · tema · dil | Tam ekran · Kapat) — js/kabuk.js bağlar
     const top = h("header", { class: "topbar" },
       h("img", { class: "logo", src: "assets/logo.svg", alt: "", width: 40, height: 40 }),
       h("div", { class: "ttl" }, h("div", { class: "ttl-main" }, t(APP_TITLE)), h("div", { class: "ttl-ver" }, ltr("v" + ver))),
       this.bellBtn,
       h("button", { class: "icon-btn top-btn", type: "button", "aria-label": t("Menü"), title: t("Menü"), onclick: () => Forms.menu() },
-        h("span", { class: "emo burger" }, "☰")),
-      h("div", { class: "top-group" }, this.syncBtn, this.updBtn,
-        bridgeHas("minimizeApp") ? h("button", { class: "icon-btn top-btn win-btn", type: "button", "aria-label": t("Küçült"), title: t("Küçült"),
-          onclick: () => bridge().minimizeApp() }, h("span", { class: "emo" }, "—")) : null,
-        bridgeHas("exitApp") ? h("button", { class: "icon-btn top-btn win-btn", type: "button", "aria-label": t("Kapat"), title: t("Kapat"),
-          onclick: async () => { if (await Dlg.confirm(t("Programdan çıkmak istiyor musunuz?"), t("Çıkış"))) bridge().exitApp(); } },
-          h("span", { class: "emo" }, "✕")) : null));
+        h("span", { class: "emo burger" }, "☰")));
+    this.topEl = top;
     this.bannerEl = h("div", { class: "banner", hidden: true, role: "alert", onclick: () => { this.bannerEl.hidden = true; Forms.reminders({ dueOnly: true }); } });
     const hero = h("div", { class: "hero" },
       h("div", { id: "quote", class: "quote" }, QUOTES[QUOTE_I]),
@@ -247,8 +233,8 @@ const App = {
 
     app.append(top, this.bannerEl, hero, h("main", { class: "main" }, left, right));
     this.renderClock();
+    if (window.Kabuk) Kabuk.ustCubuk(top);
     this.renderSyncBtn();
-    this.renderUpdBtn();
     this.applyView();
     this.refresh();
   },
@@ -257,14 +243,6 @@ const App = {
     if (!c) return;
     const n = new Date();
     clear(c).append(dayName(n) + ", ", ltr(`${pad(n.getDate())}.${pad(n.getMonth() + 1)}.${n.getFullYear()}  ${hhmm(n)}`));
-  },
-  renderUpdBtn() {
-    if (!this.updBtn) return;
-    const st = Upd.state;
-    this.updBtn.dataset.state = ["available", "downloading", "installed", "apk"].includes(st) ? "new" : st;
-    this.updLbl.textContent = st === "downloading" && Upd.prog[1] ? "%" + Upd.pct()
-      : st === "available" ? "v" + (Upd.info || {}).surum : t("Güncelle");
-    this.updBtn.title = st === "available" ? tf("Yeni sürüm hazır: {}", "v" + Upd.info.surum) : t("⬆ Güncelleme");
   },
   /** ☁ Eşitle: giriş yapılmışsa hemen eşitler, yapılmamışsa eşitleme ekranını açar. */
   async syncNow() {
@@ -275,11 +253,7 @@ const App = {
     toast(Sync.lastErr ? Sync.lastErr : t("Eşitlendi ✓"));
   },
   renderSyncBtn() {
-    if (!this.syncBtn) return;
-    const st = Sync.status();
-    this.syncBtn.dataset.state = st.kind;
-    this.syncBtn.title = st.text;
-    this.syncBtn.setAttribute("aria-label", t("☁ Eşitleme") + " — " + st.text);
+    if (window.Kabuk) Kabuk.esitleDurum();
     Sheets.stack.forEach(s => s.syncStatus && s.syncStatus());
   },
   applyView() {

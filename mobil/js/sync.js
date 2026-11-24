@@ -298,13 +298,14 @@ const Sync = {
     if (loc && !loc.dirty && loc.m === r.m && !!loc.del === !!r.del) return false;   // kendi yazdığımız / değişmemiş
     if (r.del) {
       const was = loc && !loc.del;
+      if (was) Store.archive(col, loc, "uzak");   // v1.21: başka cihazda silinen kayıt burada arşivlenir (belge dosyası da kalır)
       const row = { id: r.id, m: r.m, del: true, dirty: 0 };
       Store.putRemote(col, row);
       toSave.push(row);
-      if (col === "docs") Store.delBlob(r.id);
       return !!was;
     }
     const changed = !this.same(col, loc, r);
+    if (changed && loc && loc.dirty && !loc.del) Store.conflict(col, loc);   // gönderilmemiş eski değişiklik → çakışma yedeği
     r.dirty = 0;
     if (col === "docs") r.bu = 1;
     Store.putRemote(col, r);
