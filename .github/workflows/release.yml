@@ -166,5 +166,5 @@ jobs:
       release_title: Bereket Defter v${{ needs.build-win.outputs.version }}
       files: ${{ needs.build-android.outputs.files }}
       notes_json: release-notes.json
-      min_version: 1.21.0
+      min_version: 1.21.2
       core_ref: main
