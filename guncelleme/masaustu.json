@@ -1,9 +1,9 @@
 {
- "surum": "1.21.0",
- "kod": "1_21_0",
- "dosya": "masaustu-1_21_0.zip",
- "sha256": "4ac15f7ab2aed83085ee351ed36be2279e83cebcf30317b49ae45a40965b284f",
+ "surum": "1.21.1",
+ "kod": "1_21_1",
+ "dosya": "masaustu-1_21_1.zip",
+ "sha256": "e0f6255710242b0a5fe8963b7855c988fa684e47b1bbfa83a2154c5f1f60404f",
  "boyut": 212156,
- "notlar": "Bereket Defter 1.21.0 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nYeni görünüm (Falcon) ve renk şeması seçici; eski yeşil görünüm \"Klasik\" olarak seçilebilir, koyu/açık tema, yazı boyutu\nSağ üstte Eşitle · Wi‑Fi · Güncelle · tema · dil | Küçült · Orta · Tam ekran · Kapat\nTek tuşla güncelleme: yalnızca değişen kısımlar iner (yüzde, MB, kalan, hız); bilgisayarda kurulum programı\nHiçbir kayıt kalıcı silinmez: başka cihazda silinenler Ayarlar → Arşiv'e gider, çakışmada eski hal yedeklenir\nİlk açılış rehberi (kendi Firebase'iniz), otomatik hata raporu, Admin ile iletişim Ayarlar'ın en sonunda",
- "tarih": "2026-11-24 13:09"
+ "notlar": "Bereket Defter 1.21.1 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nDefter ekranındaki hadisler İngilizce ve Arapça (asıl metniyle) gösterilir\nSürüm rozeti tam sürümü gösterir (v1.21.1)\nArapça: kalan süre \"د / ث\" ile; Asistan Agent kartında metin kesilmiyor\nSol alttaki ✦ düğmesinin simgesi yeniden görünüyor",
+ "tarih": "2026-11-24 18:28"
 }
