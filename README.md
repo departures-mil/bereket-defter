@@ -19,6 +19,6 @@ kullanıcının Firebase hesabı üzerinden eşitlenir; **kayıtlar bu depoda bu
    APK değiştiyse: `python3 araclar/yayinla.py mobil "notlar" --minNative <kod> --apk <dosya.apk> --apkKod <kod>` (telefon tek tuşla kurar)
 3. `git add -A && git commit -m "Bereket X.Y" && git push`
 
-## Asistan Agent (hazır, yayın bekliyor — 2026-11-24)
+## Asistan Agent (telefon 1.19, 2026-11-24)
 ✦ Asistan Agent eklendi: `fc-agent.js` (= ortak-cekirdek/web/dist/fc-agent.js) + `agent-baslat.js` arayüz klasöründe. Bütün programlardaki
 çalışmayı sayılarla izler, öneri verir (bildirim + ✦ panel), Ayarlar'da admin iletişim kartının önünde. Sonraki sürüm yayınlanınca kullanıcılara gider.
