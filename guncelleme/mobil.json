@@ -1,14 +1,14 @@
 {
- "surum": "1.21.0",
- "kod": "1_21_0",
+ "surum": "1.21.1",
+ "kod": "1_21_1",
  "dosya": "mobil-1_20.zip",
  "sha256": "0eaf1da01b0e8e2e5d75188235890c1b8afef42d5fb266f5212ddc7d7c3575d7",
  "boyut": 216284,
- "notlar": "Bereket Defter 1.21.0: uygulamanın yeni sürümü (APK). Kayıtlarınız olduğu gibi kalır.\n\nYeni görünüm (Falcon) ve renk şeması seçici; eski yeşil görünüm \"Klasik\" olarak seçilebilir, koyu/açık tema, yazı boyutu\nSağ üstte Eşitle · Wi‑Fi · Güncelle · tema · dil | Küçült · Orta · Tam ekran · Kapat\nTek tuşla güncelleme: yalnızca değişen kısımlar iner (yüzde, MB, kalan, hız); bilgisayarda kurulum programı\nHiçbir kayıt kalıcı silinmez: başka cihazda silinenler Ayarlar → Arşiv'e gider, çakışmada eski hal yedeklenir\nİlk açılış rehberi (kendi Firebase'iniz), otomatik hata raporu, Admin ile iletişim Ayarlar'ın en sonunda",
- "tarih": "2026-11-24 13:09",
- "minNative": 17,
- "apkKod": "17",
- "apkDosya": "BereketDefter-17.apk",
- "apkBoyut": 983579,
- "apkSha256": "5fc9ba3fb377128fb7b905126a04190ab3ca281086bd753de7e021f692cb4f48"
+ "notlar": "Bereket Defter 1.21.1: uygulamanın yeni sürümü (APK). Kayıtlarınız olduğu gibi kalır.\n\nDefter ekranındaki hadisler İngilizce ve Arapça (asıl metniyle) gösterilir\nSürüm rozeti tam sürümü gösterir (v1.21.1)\nArapça: kalan süre \"د / ث\" ile; Asistan Agent kartında metin kesilmiyor\nSol alttaki ✦ düğmesinin simgesi yeniden görünüyor",
+ "tarih": "2026-11-24 18:28",
+ "minNative": 18,
+ "apkKod": "18",
+ "apkDosya": "BereketDefter-18.apk",
+ "apkBoyut": 987675,
+ "apkSha256": "1f4f05f321f632b0808e9a34f782969571bd4a0dcbc2ea7e50f1b89a538d88ab"
 }
