@@ -1,9 +1,9 @@
 {
- "surum": "1.19",
- "kod": "1_19",
- "dosya": "masaustu-1_19.zip",
- "sha256": "13a1927638e9926d7bef94e2621c75f46c611fe9eb0515b7044ffa306e4bcf82",
- "boyut": 191462,
- "notlar": "Sürüm 1.19: telefon sürümüyle eşit tutuldu (telefona Asistan Agent eklendi).",
- "tarih": "2026-11-24 12:01"
+ "surum": "1.20",
+ "kod": "1_20",
+ "dosya": "masaustu-1_20.zip",
+ "sha256": "5f4ee30945616c36001cd21d36274510bd2c3bc072ee2cecc5bacf615490f229",
+ "boyut": 207489,
+ "notlar": "Yeni: ✦ Asistan Agent — bütün programlarınızdaki çalışmanızı izler ve daha verimli çalışmanız için öneriler verir (bildirim + sağ altta ✦ panel). Ayarlar'dan açılıp kapatılabilir.",
+ "tarih": "2026-11-24 12:09"
 }

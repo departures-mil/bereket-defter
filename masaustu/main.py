@@ -21,6 +21,11 @@ from PySide6.QtWidgets import (QProgressBar, QAbstractItemView, QApplication, QB
 
 import i18n
 from i18n import _
+try:
+    import fc_agent  # Asistan Agent (ortak-cekirdek/python/fc_agent.py)
+except Exception:  # pragma: no cover
+    fc_agent = None
+AJAN = None
 from db import CHANNELS, CONTACT_FIELDS, CURRENCIES, CURRENCY_NAMES, CURRENCY_SYMBOLS, DB, parse_old
 from sync import RULES, SyncEngine
 import guncelle
@@ -29,7 +34,7 @@ import kullanim_sayac
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.19"
+APP_VERSION = "1.20"
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -1789,6 +1794,9 @@ class SettingsDialog(QDialog):
         lay.addWidget(self.c_notify)
         # --- kullanım limitleri (kendi Firebase hesabının günlük sınırı)
         lay.addWidget(kullanim_sayac.KullanimKarti(self))
+        # --- Asistan Agent (admin iletişimin önünde)
+        if AJAN is not None:
+            lay.addWidget(AJAN.card(self))
         # --- admin ile iletişim (ayarların sonu)
         h2 = QLabel(_("✉ Admin ile iletişime geç"))
         h2.setObjectName("h2")
@@ -2775,12 +2783,23 @@ def main():
     app.setStyleSheet(STYLE)
     app.setWindowIcon(QIcon(logo_pixmap(128)))
 
+    global AJAN
+    if fc_agent is not None:
+        try:
+            AJAN = fc_agent.Agent("bereket-defter", APP_VERSION, lang=lambda: i18n._lang, sync=True)
+        except Exception:
+            AJAN = None
     db = DB()
     first = True
     while True:
         w = MainWindow(db, first_start=first)
-        first = False
         w.showFullScreen()
+        if AJAN is not None:
+            try:
+                AJAN.start(app, w) if first else AJAN.attach_button(w)
+            except Exception:
+                pass
+        first = False
         code = app.exec()
         w.hide()
         w.deleteLater()
