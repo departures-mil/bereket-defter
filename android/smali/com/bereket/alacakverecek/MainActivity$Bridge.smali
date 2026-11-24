@@ -745,3 +745,58 @@
     .line 1156
     return-void
 .end method
+
+# ---- v1.21: ortak çekirdek köprüsü (FC.host android sözleşmesi). Kaynak: android/java/…/FcGuncelle.java
+.method public moveTaskToBack()V
+    .locals 2
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/bereket/alacakverecek/MainActivity$Bridge;->this$0:Lcom/bereket/alacakverecek/MainActivity;
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Lcom/bereket/alacakverecek/MainActivity;->moveTaskToBack(Z)Z
+
+    return-void
+.end method
+
+.method public openExternal(Ljava/lang/String;)V
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/bereket/alacakverecek/MainActivity$Bridge;->this$0:Lcom/bereket/alacakverecek/MainActivity;
+
+    invoke-virtual {v0, p1}, Lcom/bereket/alacakverecek/MainActivity;->openExternal(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public notify(Ljava/lang/String;Ljava/lang/String;)V
+    .locals 1
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/bereket/alacakverecek/MainActivity$Bridge;->this$0:Lcom/bereket/alacakverecek/MainActivity;
+
+    invoke-static {v0, p1, p2}, Lcom/bereket/alacakverecek/FcGuncelle;->notify(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public apkUpdate(Ljava/lang/String;)V
+    .locals 2
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/bereket/alacakverecek/MainActivity$Bridge;->this$0:Lcom/bereket/alacakverecek/MainActivity;
+
+    invoke-static {v0}, Lcom/bereket/alacakverecek/MainActivity;->access$100(Lcom/bereket/alacakverecek/MainActivity;)Landroid/webkit/WebView;
+
+    move-result-object v1
+
+    invoke-static {v0, v1, p1}, Lcom/bereket/alacakverecek/FcGuncelle;->apkUpdate(Landroid/app/Activity;Landroid/webkit/WebView;Ljava/lang/String;)V
+
+    return-void
+.end method

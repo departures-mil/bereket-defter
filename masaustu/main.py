@@ -21,6 +21,8 @@ from PySide6.QtWidgets import (QProgressBar, QAbstractItemView, QApplication, QB
 
 import i18n
 from i18n import _
+import fccore
+from fccore import style as fcstyle
 try:
     import fc_agent  # Asistan Agent (ortak-cekirdek/python/fc_agent.py)
 except Exception:  # pragma: no cover
@@ -28,13 +30,10 @@ except Exception:  # pragma: no cover
 AJAN = None
 from db import CHANNELS, CONTACT_FIELDS, CURRENCIES, CURRENCY_NAMES, CURRENCY_SYMBOLS, DB, parse_old
 from sync import RULES, SyncEngine
-import guncelle
-import duyuru_istemci
-import kullanim_sayac
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
-# Her güncellemede yükseltilir (portable RAR adı ve kurulum sürümü de buna uyar)
-APP_VERSION = "1.20"
+# Sürüm (semver X.Y.Z; etiket vX.Y.Z). Tek kaynak: masaustu/surum.py (CI, kurulum ve telefon aynı sürümü okur)
+from surum import APP_VERSION
 # Ana ekranda 10 saniyede bir sırayla değişen alacak-verecek, borç ve alışverişle ilgili hadisler (yalnızca Buhârî ve Müslim). Programın içinde durur, internet gerekmez.
 QUOTES = [
     "“Alışveriş yapanlar doğru söyler ve kusuru açıklarlarsa alışverişleri bereketli olur; gizler ve yalan söylerlerse alışverişlerinin bereketi kaçar.” (Buhârî, 2079; Müslim, 1532)",
@@ -68,7 +67,18 @@ QUOTES = [
     "“Vasiyet edeceği bir şeyi olan Müslümanın, vasiyeti yanında yazılı olmadan iki gece geçirmesi doğru değildir.” (Buhârî, 2738; Müslim, 1627)",
 ]
 DAY_NAMES = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
-GREEN, RED = "#0f8f6a", "#c0392b"
+GREEN, RED = "#0f8f6a", "#c0392b"          # ekran renkleri: refresh_colors() şemadan alır
+PRINT_GREEN, PRINT_RED = "#0f8f6a", "#c0392b"   # döküm (kâğıt / PDF) her zaman açık renk
+
+
+def tok(name):
+    """Seçili renk şemasının (Falcon, Klasik, …) belirteci; ortak çekirdekten."""
+    return fcstyle.tok(name)
+
+
+def refresh_colors():
+    global GREEN, RED
+    GREEN, RED = tok("ok-text"), tok("danger-text")
 
 
 def resource(name):
@@ -106,76 +116,28 @@ def ts_display(ts):
     return d.strftime("%d.%m.%Y %H:%M")
 
 
-STYLE = """
-* { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; }
-QFrame#card { background: rgba(255,255,255,238); border-radius: 18px; }
-QLabel#title { color: white; font-size: 30px; font-weight: 700; }
-QLabel#quote { color: #fff3b0; font-size: 16px; font-style: italic; }
-QLabel#clock { color: white; font-size: 18px; }
-QLabel#h2 { font-size: 21px; font-weight: 700; color: #06513f; }
-QLabel#muted { color: #667; }
-QPushButton { background: #0f8f6a; color: white; border: none; border-radius: 10px; padding: 9px 16px;
-              font-weight: 600; }
-QPushButton:hover { background: #12a87c; }
-QPushButton:disabled { background: #aab; }
-QPushButton#danger { background: #c0392b; }
-QPushButton#danger:hover { background: #d9493a; }
-QPushButton#light { background: rgba(255,255,255,40); border: 1px solid rgba(255,255,255,120); }
-QPushButton#light:hover { background: rgba(255,255,255,70); }
-QPushButton#gold { background: #e0a200; color: #2b1d00; }
-QLineEdit, QCheckBox, QComboBox, QDateTimeEdit, QDoubleSpinBox, QTextEdit, QPlainTextEdit, QSpinBox {
-    border: 1px solid #c9d3d0; border-radius: 8px; padding: 6px; background: white; color: #111;
-    selection-background-color: #0f8f6a; selection-color: white; }
-QComboBox QAbstractItemView { background: white; color: #111; selection-background-color: #0f8f6a;
-    selection-color: white; }
-QTableWidget, QTableView { color: #111; }
-QListWidget { border: none; background: transparent; }
-QListWidget::item { padding: 10px; border-radius: 10px; margin: 2px 0; }
-QListWidget::item:selected { background: #0f8f6a; color: white; }
-QListWidget::item:hover:!selected { background: #e3f4ee; }
-QTableWidget { border: none; gridline-color: #e6ecea; background: white; border-radius: 10px;
-               alternate-background-color: #f4faf8; }
-QHeaderView::section { background: #06513f; color: white; padding: 8px; border: none; font-weight: 600; }
-"""
-
-
-class Background(QWidget):
-    """Moral veren gradyan arka plan."""
-
-    def paintEvent(self, e):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        w, h = self.width(), self.height()
-        g = QLinearGradient(0, 0, w, h)
-        g.setColorAt(0, QColor("#06513f"))
-        g.setColorAt(0.55, QColor("#0b6e74"))
-        g.setColorAt(1, QColor("#123a6b"))
-        p.fillRect(self.rect(), g)
-        # yükselen güneş
-        rg = QRadialGradient(w * 0.85, h * 1.05, h * 0.9)
-        rg.setColorAt(0, QColor(255, 210, 74, 120))
-        rg.setColorAt(1, QColor(255, 210, 74, 0))
-        p.fillRect(self.rect(), rg)
-        # yükselen grafik çizgileri
-        p.setPen(QPen(QColor(255, 255, 255, 22), 3))
-        for k in range(6):
-            off = k * h * 0.12
-            pts = [(0, h * 0.95 - off), (w * 0.25, h * 0.85 - off), (w * 0.45, h * 0.9 - off),
-                   (w * 0.7, h * 0.65 - off), (w, h * 0.45 - off)]
-            for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
-                p.drawLine(int(x1), int(y1), int(x2), int(y2))
-        # yıldızcıklar
-        rnd = random.Random(7)
-        p.setPen(Qt.NoPen)
-        for _i in range(60):
-            p.setBrush(QColor(255, 255, 255, rnd.randint(15, 60)))
-            r = rnd.uniform(1, 3)
-            p.drawEllipse(QRectF(rnd.uniform(0, w), rnd.uniform(0, h * 0.6), r, r))
-        # filigran logo
-        p.setOpacity(0.06)
-        s = int(min(w, h) * 0.55)
-        QSvgRenderer(resource("logo.svg")).render(p, QRectF(w - s * 0.8, h - s * 0.8, s, s))
-        p.end()
+def app_qss():
+    """Uygulamaya özgü ek QSS (çekirdeğin Falcon QSS'inin üstüne); renkler seçili şemadan."""
+    T = {k: fcstyle.q(v) for k, v in fcstyle.scheme_tokens().items() if str(v).startswith("#") and k.startswith(("accent", "text", "muted", "danger",
+                                                                                         "warn", "ok", "panel", "border", "on-", "label", "active"))}
+    return """
+QLabel#quote {{ color: {muted}; font-style: italic; font-size: 15px; }}
+QLabel#clock {{ color: {label}; font-size: 16px; font-weight: 600; }}
+QLabel#h2 {{ font-size: 19px; font-weight: 700; color: {accent}; }}
+QLabel#muted {{ color: {muted}; }}
+QLabel#banner {{ background: {warn-soft}; color: {warn-text}; border: 1px solid {warn-line}; font-size: 16px; font-weight: 700;
+                 padding: 10px 16px; border-radius: 12px; }}
+QPushButton#danger {{ color: {danger-text}; background: {danger-soft}; border-color: {danger-line}; }}
+QPushButton#danger:hover {{ border-color: {danger-text}; }}
+QPushButton#gold {{ color: {warn-text}; background: {warn-soft}; border-color: {warn-line}; font-weight: 600; }}
+QPushButton#primary {{ color: {on-accent}; background: {accent}; border-color: transparent; font-weight: 600; }}
+QListWidget#plist {{ border: 0; background: transparent; }}
+QListWidget#plist::item {{ padding: 10px; border-radius: 10px; margin: 2px 0; }}
+QListWidget#plist::item:selected {{ background: {active-1}; color: {text}; }}
+QFrame#tile {{ background: {panel-hover}; border: 1px solid {border}; border-radius: 14px; }}
+QLabel#tileTitle {{ font-weight: 700; color: {accent}; }}
+QLabel#hint {{ background: {warn-soft}; color: {warn-text}; padding: 8px; border-radius: 8px; }}
+""".format(**T)
 
 
 def card():
@@ -188,11 +150,11 @@ class BalanceTile(QFrame):
     def __init__(self, cur):
         super().__init__()
         self.cur = cur
-        self.setStyleSheet("QFrame{background:#f4faf8;border-radius:14px;}")
+        self.setObjectName("tile")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(14, 10, 14, 10)
         t = QLabel(_(CURRENCY_NAMES[cur]))
-        t.setStyleSheet("font-weight:700;color:#06513f;")
+        t.setObjectName("tileTitle")
         self.main = QLabel()
         self.main.setWordWrap(True)
         self.main.setStyleSheet("font-size:22px;font-weight:700;")
@@ -206,7 +168,7 @@ class BalanceTile(QFrame):
     def set_person(self, verilen, alinan, bakiye):
         if abs(bakiye) < 0.005:
             self.main.setText(f"{_('Hesap kapalı')}  0 {CURRENCY_SYMBOLS[self.cur]}")
-            self.main.setStyleSheet("font-size:22px;font-weight:700;color:#556;")
+            self.main.setStyleSheet(f"font-size:22px;font-weight:700;color:{tok('muted')};")
         elif bakiye > 0:
             self.main.setText(f"{_('Alacak')}: {money(bakiye, self.cur)}")
             self.main.setStyleSheet(f"font-size:22px;font-weight:700;color:{GREEN};")
@@ -328,7 +290,7 @@ class ChannelBar(QWidget):
             b.setIconSize(QSize(32, 32))
             b.setFixedSize(40, 40)
             b.setStyleSheet("QPushButton{background:transparent;border:none;padding:0;border-radius:20px;}"
-                            "QPushButton:hover{background:#dff1ea;}")
+                            f"QPushButton:hover{{background:{tok('panel-hover')};}}")
             b.clicked.connect(lambda checked=False, c=ch: self.clicked(c))
             lay.addWidget(b)
             self.btns[ch] = b
@@ -387,7 +349,7 @@ class PersonDelegate(QStyledItemDelegate):
         painter.save()
         painter.setFont(opt.font)
         selected = bool(opt.state & QStyle.State_Selected)
-        painter.setPen(QColor("white") if selected else QColor("#111111"))
+        painter.setPen(QColor(tok("text")))
         fm = painter.fontMetrics()
         text = text.replace("\u2028", "\n")
         lines = [fm.elidedText(t, Qt.ElideRight, tr.width()) for t in text.split("\n")]
@@ -398,7 +360,7 @@ class PersonDelegate(QStyledItemDelegate):
             x = (r.left() + i * (self.ICON + 4)) if rtl else (r.right() - (len(chs) - i) * (self.ICON + 4) + 4)
             if selected:
                 painter.setPen(Qt.NoPen)
-                painter.setBrush(QColor("white"))
+                painter.setBrush(fcstyle.qcolor(tok("panel-solid")))
                 painter.setRenderHint(QPainter.Antialiasing)
                 painter.drawEllipse(x - 2, y - 2, self.ICON + 4, self.ICON + 4)
             painter.drawPixmap(x, y, channel_pixmap(ch, self.ICON))
@@ -689,7 +651,7 @@ class PhotoStrip(QListWidget):
         self.setResizeMode(QListWidget.Adjust)
         self.setMovement(QListWidget.Static)
         self.setFixedHeight(140)
-        self.setStyleSheet("QListWidget{background:#f4faf8;border-radius:10px;}")
+        self.setStyleSheet(f"QListWidget{{background:{tok('panel-hover')};border-radius:10px;}}")
         self.itemDoubleClicked.connect(lambda it: open_file(self, it.data(Qt.UserRole + 1)))
         self.on_drop = None
         self.setAcceptDrops(True)
@@ -797,7 +759,7 @@ class TxDialog(QDialog):
         self.hint = QLabel(_("💵 Nakit dolar aldıysanız banknotların fotoğrafını eklemeyi unutmayın "
                              "(sahte çıkma ihtimaline karşı)."))
         self.hint.setWordWrap(True)
-        self.hint.setStyleSheet("background:#fff3b0;color:#5a4300;padding:8px;border-radius:8px;")
+        self.hint.setObjectName("hint")
         lay.addWidget(self.hint)
         doc_lbl = QLabel(_("<b>Dekont / Belgeler</b> — PDF, resim veya her türlü dosya. Açmak için çift "
                            "tıklayın, dosyaları buraya sürükleyip bırakabilirsiniz."))
@@ -1024,7 +986,7 @@ class StatementDialog(QDialog):
                 h.append(
                     f"<tr><td>{r['ts'][11:16]}</td>" +
                     ("" if self.person else f"<td>{e(r['person_name'])}</td>") +
-                    f"<td style='color:{RED if ver else GREEN}'>{_('Verdim') if ver else _('Aldım')}</td><td>{c}</td>"
+                    f"<td style='color:{PRINT_RED if ver else PRINT_GREEN}'>{_('Verdim') if ver else _('Aldım')}</td><td>{c}</td>"
                     f"<td align=right>{money(r['amount'], c) if ver else ''}</td>"
                     f"<td align=right>{'' if ver else money(r['amount'], c)}</td>"
                     f"<td align=right>{self.bal_txt(running[c], c, short=True)}</td>"
@@ -1052,7 +1014,7 @@ class StatementDialog(QDialog):
     def bal_txt(b, c, short=False):
         if abs(b) < 0.005:
             return f"0 {CURRENCY_SYMBOLS[c]}"
-        col = GREEN if b > 0 else RED
+        col = PRINT_GREEN if b > 0 else PRINT_RED
         label = "" if short else (_("Alacak") if b > 0 else _("Verecek")) + " "
         val = money(b if short else abs(b), c)
         return f"<span style='color:{col}'>{label}{val}</span>"
@@ -1093,7 +1055,7 @@ def reminder_state(r):
     if r["due"] <= now:
         return "late", _("Vakti geldi / gecikti"), RED
     if r["due"][:10] == now[:10]:
-        return "today", _("Bugün"), "#d97a00"
+        return "today", _("Bugün"), tok("warn-text")
     return "soon", _("Yaklaşan"), GREEN
 
 
@@ -1217,7 +1179,7 @@ class RemindersDialog(QDialog):
         lay = QVBoxLayout(self)
         top = QHBoxLayout()
         self.head = QLabel()
-        self.head.setStyleSheet("font-size:19px;font-weight:700;color:#06513f;")
+        self.head.setStyleSheet(f"font-size:19px;font-weight:700;color:{tok('accent')};")
         top.addWidget(self.head, 1)
         self.filter = QComboBox()
         self.filter.addItem(_("Vakti gelenler"), "due")
@@ -1397,14 +1359,22 @@ def sync_status_text(engine):
 class SyncDialog(QDialog):
     """☁ Telefon ile eşitleme ayarları (Firebase hesabı)."""
 
-    def __init__(self, parent, engine):
+    def __init__(self, parent, engine, lan_only=False):
         super().__init__(parent)
         self.engine = engine
-        self.setWindowTitle(_("☁ Eşitleme (telefon ⇄ bilgisayar)"))
-        self.setMinimumWidth(1000)
+        self.lan_only = lan_only
+        self.setWindowTitle(_("📶 Wi‑Fi ile eşitleme (internetsiz)") if lan_only else _("☁ Eşitleme (telefon ⇄ bilgisayar)"))
+        self.setMinimumWidth(560 if lan_only else 1000)
         outer = QHBoxLayout(self)
         outer.setSpacing(18)
         left = QVBoxLayout()
+        if lan_only:
+            self._build_lan(left, engine)
+            close = QPushButton(_("Kapat"))
+            close.clicked.connect(self.accept)
+            left.addWidget(close, 0, Qt.AlignRight if not i18n.is_rtl() else Qt.AlignLeft)
+            outer.addLayout(left)
+            return
         h = QLabel(_("☁ Telefon ile eşitleme"))
         h.setObjectName("h2")
         left.addWidget(h)
@@ -1437,14 +1407,14 @@ class SyncDialog(QDialog):
         self.adv = QPushButton()
         self.adv.setFlat(True)
         self.adv.setCursor(Qt.PointingHandCursor)
-        self.adv.setStyleSheet("QPushButton{background:transparent;color:#0b6e74;padding:2px;text-align:left;}")
+        self.adv.setStyleSheet(f"QPushButton{{background:transparent;border:0;color:{tok('accent')};padding:2px;text-align:left;}}")
         self.adv.clicked.connect(lambda: self.show_advanced(not self.emu.isVisible()))
         f.addRow("", self.adv)
         self.emu_lbl = QLabel(_("Emülatör adresi (yalnızca test)"))
         f.addRow(self.emu_lbl, self.emu)
         left.addLayout(f)
         self.account = QLabel()
-        self.account.setStyleSheet("font-weight:700;color:#06513f;")
+        self.account.setStyleSheet(f"font-weight:700;color:{tok('accent')};")
         left.addWidget(self.account)
         self.status = QLabel()
         self.status.setWordWrap(True)
@@ -1469,36 +1439,7 @@ class SyncDialog(QDialog):
         brow.addWidget(self.b_now, 1, 0)
         brow.addWidget(self.b_out, 1, 1)
         left.addLayout(brow)
-        # --- Wi‑Fi (internetsiz) eşitleme: ikinci seçenek
-        lan = getattr(engine, "lan_server", None)
-        if lan is not None:
-            wbox = QFrame()
-            wbox.setStyleSheet("QFrame{background:#eef7f5;border-radius:12px;}")
-            wl = QVBoxLayout(wbox)
-            wl.setContentsMargins(12, 10, 12, 10)
-            wh = QLabel("<b>" + _("📶 Wi‑Fi ile eşitleme (internetsiz)") + "</b>")
-            wl.addWidget(wh)
-            wi = QLabel(_("Telefon ve bu bilgisayar aynı modeme / Wi‑Fi ağına bağlıyken internet olmadan da eşitlenir. "
-                          "Telefonda: ☁ Eşitleme → 📶 Wi‑Fi ile eşitle → aşağıdaki adresi ve kodu yazın. "
-                          "Aynı bulut hesabındaysanız kod sorulmaz. Kayıtlar silinmez, üst üste yazılmaz; son değişen kazanır."))
-            wi.setWordWrap(True)
-            wi.setObjectName("muted")
-            wi.setMinimumWidth(200)
-            wi.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-            wl.addWidget(wi)
-            self.lan_info = QLabel()
-            self.lan_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            self.lan_info.setLayoutDirection(Qt.LeftToRight)
-            self.lan_info.setStyleSheet("font-size:17px;font-weight:700;color:#06513f;")
-            wl.addWidget(self.lan_info)
-            self.lan_last = QLabel()
-            self.lan_last.setObjectName("muted")
-            wl.addWidget(self.lan_last)
-            nb = QPushButton(_("Yeni kod üret"))
-            nb.clicked.connect(lambda: (lan.new_code(), self.refresh_lan()))
-            wl.addWidget(nb, 0, Qt.AlignLeft if not i18n.is_rtl() else Qt.AlignRight)
-            left.addWidget(wbox)
-            self.refresh_lan()
+        self._build_lan(left, engine)
         left.addStretch(1)
         close = QPushButton(_("Kapat"))
         close.clicked.connect(self.accept)
@@ -1509,7 +1450,7 @@ class SyncDialog(QDialog):
         outer.addLayout(left, 4)
 
         helpbox = QFrame()
-        helpbox.setStyleSheet("QFrame{background:#f4faf8;border-radius:12px;}")
+        helpbox.setProperty("fc", "card")
         right = QVBoxLayout(helpbox)
         right.setContentsMargins(14, 12, 14, 12)
         ht = QLabel(_(SYNC_HELP))
@@ -1533,6 +1474,38 @@ class SyncDialog(QDialog):
         self.refresh()
         self.resize(1100, max(700, self.sizeHint().height()))
 
+    def _build_lan(self, left, engine):
+        """Wi‑Fi (internetsiz) eşitleme: ikinci seçenek (üst çubuktaki Wi‑Fi düğmesi yalnız bunu açar)."""
+        lan = getattr(engine, "lan_server", None)
+        if lan is not None:
+            wbox = QFrame()
+            wbox.setProperty("fc", "card")
+            wl = QVBoxLayout(wbox)
+            wl.setContentsMargins(12, 10, 12, 10)
+            wh = QLabel("<b>" + _("📶 Wi‑Fi ile eşitleme (internetsiz)") + "</b>")
+            wl.addWidget(wh)
+            wi = QLabel(_("Telefon ve bu bilgisayar aynı modeme / Wi‑Fi ağına bağlıyken internet olmadan da eşitlenir. "
+                          "Telefonda: ☁ Eşitleme → 📶 Wi‑Fi ile eşitle → aşağıdaki adresi ve kodu yazın. "
+                          "Aynı bulut hesabındaysanız kod sorulmaz. Kayıtlar silinmez, üst üste yazılmaz; son değişen kazanır."))
+            wi.setWordWrap(True)
+            wi.setObjectName("muted")
+            wi.setMinimumWidth(200)
+            wi.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+            wl.addWidget(wi)
+            self.lan_info = QLabel()
+            self.lan_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            self.lan_info.setLayoutDirection(Qt.LeftToRight)
+            self.lan_info.setStyleSheet(f"font-size:17px;font-weight:700;color:{tok('accent')};")
+            wl.addWidget(self.lan_info)
+            self.lan_last = QLabel()
+            self.lan_last.setObjectName("muted")
+            wl.addWidget(self.lan_last)
+            nb = QPushButton(_("Yeni kod üret"))
+            nb.clicked.connect(lambda: (lan.new_code(), self.refresh_lan()))
+            wl.addWidget(nb, 0, Qt.AlignLeft if not i18n.is_rtl() else Qt.AlignRight)
+            left.addWidget(wbox)
+            self.refresh_lan()
+
     def refresh_lan(self):
         lan = getattr(self.engine, "lan_server", None)
         if lan is None or not hasattr(self, "lan_info"):
@@ -1554,6 +1527,8 @@ class SyncDialog(QDialog):
         self.adv.setText(("▾ " if on else ("◂ " if i18n.is_rtl() else "▸ ")) + _("Gelişmiş"))
 
     def refresh(self):
+        if self.lan_only:
+            return
         eng = self.engine
         signed, busy = eng.signed_in(), eng.busy
         self.account.setText(_("Giriş yapıldı: {}").format(eng.cfg.get("email", "")) if signed
@@ -1608,409 +1583,53 @@ class SyncDialog(QDialog):
         self.refresh()
 
 
-# ---------------------------------------------------------------- güncelleme
-UPDATE_ERRORS = {
-    "NETWORK": "İnternet bağlantısı yok veya sunucuya ulaşılamadı.",
-    "BAD_PACKAGE": "İndirilen güncelleme bozuk, tekrar deneyin.",
-    "WRITE": "Program klasörüne yazılamadı. Programı yazma izni olan bir klasörde çalıştırın.",
-    "FROZEN": "Bu kurulumda güncelleme yeni kurulum dosyasıyla yapılır.",
-}
-
-
-def _num(x, dg):
-    s = f"{x:.{dg}f}"
-    return s if i18n.lang() == "en" else s.replace(".", ",")
-
-
-def fmt_mb(b, ref=None):
-    return _num(b / 1048576, 1 if (ref or b) >= 10 * 1048576 else 2)
-
-
-def fmt_speed(bps):
-    if bps >= 1048576:
-        return _("{} MB/sn").format(_num(bps / 1048576, 1))
-    return _("{} KB/sn").format(max(1, round(bps / 1024)))
-
-
-def fmt_eta(sec):
-    sec = max(1, int(round(sec)))
-    if sec < 60:
-        return _("~{} sn").format(sec)
-    m, r = divmod(sec, 60)
-    return _("~{} dk {} sn").format(m, r) if r else _("~{} dk").format(m)
-
-
-def download_progress_info(done, total, speed):
-    """İndirme bilgisi parça parça: (yüzde, [ (etiket, değer), ... ])"""
-    if not total:
-        return None
-    left = max(total - done, 0)
-    parts = [("", _("{} / {} MB").format(fmt_mb(done, total), fmt_mb(total, total))),
-             (_("Kalan:"), _("{} MB").format(fmt_mb(left, total)))]
-    if speed > 0:
-        parts.append((_("Hız:"), fmt_speed(speed)))
-        if left > 0 and done > 0:
-            parts.append((_("Kalan süre:"), fmt_eta(left / speed)))
-    return min(100, int(done * 100 / total)), parts
-
-
-def download_progress_html(parts):
-    """Her parça kendi içinde bölünmez (&nbsp;); satır yalnızca parçaların arasında kırılır."""
-    from html import escape
-    out = []
-    for label, val in parts:
-        txt = (f"<b>{escape(label)}</b> " if label else "") + "\u2066" + escape(val) + "\u2069"
-        out.append(txt.replace(" ", "&nbsp;"))
-    d = "rtl" if i18n.is_rtl() else "ltr"
-    return f'<p dir="{d}" style="font-size:14px;">' + "&nbsp;&nbsp;·&nbsp; ".join(out) + "</p>"
-
-
-def update_error_text(code):
-    key = (code or "").split(":")[0].strip()
-    return _(UPDATE_ERRORS[key]) if key in UPDATE_ERRORS else _("Güncelleme hatası: {}").format(code)
-
-
-class UpdateDialog(QDialog):
-    """⬆ Güncelleme: yeni sürüm varsa tek tıkla indirir, kurar ve programı yeniden başlatır."""
-
-    def __init__(self, parent, updater, auto_install=False):
-        super().__init__(parent)
-        self.up = updater
-        self.setWindowTitle(_("⬆ Güncelleme"))
-        self.setMinimumWidth(560)
-        lay = QVBoxLayout(self)
-        h = QLabel(_("⬆ Güncelleme"))
-        h.setObjectName("h2")
-        lay.addWidget(h)
-        self.cur = QLabel(_("Kullandığınız sürüm: {}").format("v" + APP_VERSION))
-        lay.addWidget(self.cur)
-        self.msg = QLabel()
-        self.msg.setWordWrap(True)
-        self.msg.setStyleSheet("font-size:17px;font-weight:700;")
-        lay.addWidget(self.msg)
-        # indirme: çubuk + bölünmeyen bilgi parçaları
-        self.bar = QProgressBar()
-        self.bar.setRange(0, 100)
-        self.bar.setTextVisible(False)
-        self.bar.setFixedHeight(12)
-        self.bar.setStyleSheet("QProgressBar{border:none;border-radius:6px;background:rgba(0,0,0,0.08);}"
-                               "QProgressBar::chunk{border-radius:6px;background:#0f8f6a;}")
-        self.bar.hide()
-        lay.addWidget(self.bar)
-        self.stats = QLabel()
-        self.stats.setTextFormat(Qt.RichText)
-        self.stats.setWordWrap(True)
-        self.stats.hide()
-        lay.addWidget(self.stats)
-        self.notes = QLabel()
-        self.notes.setWordWrap(True)
-        self.notes.setObjectName("muted")
-        lay.addWidget(self.notes)
-        info = QLabel(_("Güncelleme sadece program dosyalarını yeniler; kayıtlarınız, kişileriniz ve dekontlarınız "
-                        "olduğu gibi kalır."))
-        info.setWordWrap(True)
-        info.setObjectName("muted")
-        lay.addWidget(info)
-        bb = QHBoxLayout()
-        self.b_check = QPushButton(_("Tekrar denetle"))
-        self.b_check.clicked.connect(self.up.check_async)
-        self.b_go = QPushButton(_("⬆ Güncelle"))
-        self.b_go.setObjectName("gold")
-        self.b_go.clicked.connect(self.go)
-        close = QPushButton(_("Kapat"))
-        close.clicked.connect(self.reject)
-        b_set = QPushButton(_("⚙ Denetim ayarları"))
-        b_set.clicked.connect(lambda: self.parent().open_settings())
-        bb.addWidget(self.b_check)
-        bb.addWidget(b_set)
-        bb.addStretch()
-        bb.addWidget(close)
-        bb.addWidget(self.b_go)
-        lay.addLayout(bb)
-        self.poll = QTimer(self, interval=300, timeout=self.refresh)
-        self.poll.start()
-        if auto_install and self.up.state == "available":
-            self.up.install_async()
-        elif self.up.state in ("idle", "none", "error"):
-            self.up.check_async()
-        self.refresh()
-
-    def go(self):
-        self.up.install_async()
-        self.refresh()
-
-    def refresh(self):
-        st, info = self.up.state, self.up.info or {}
-        busy = st in ("checking", "downloading", "installed")
-        self.b_check.setEnabled(not busy)
-        self.b_go.setVisible(st == "available")
-        notes = str(info.get("notlar") or "").strip()
-        self.notes.setText(notes if st == "available" else "")
-        self.bar.setVisible(st == "downloading")
-        self.stats.setVisible(st == "downloading")
-        if st == "checking":
-            self.msg.setText(_("Yeni sürüm denetleniyor…"))
-        elif st == "none":
-            self.msg.setText(_("Program güncel. Yeni sürüm yok."))
-        elif st == "available":
-            self.msg.setText(_("Yeni sürüm hazır: {}").format("v" + str(info.get("surum"))))
-        elif st == "downloading":
-            done, total = self.up.progress
-            pi = download_progress_info(done, total, self.up.speed)
-            if pi:
-                self.msg.setText(_("Güncelleme indiriliyor… %{}").format(pi[0]))
-                self.bar.setValue(pi[0])
-                self.stats.setText(download_progress_html(pi[1]))
-            else:
-                self.msg.setText(_("Güncelleme indiriliyor…"))
-                self.bar.setValue(0)
-                self.stats.setText("")
-        elif st == "installed":
-            self.msg.setText(_("Güncelleme kuruldu. Program yeniden başlatılıyor…"))
-            self.poll.stop()
-            QTimer.singleShot(900, self.parent().restart_after_update)
-        elif st == "error":
-            self.msg.setText(update_error_text(self.up.error))
-        else:
-            self.msg.setText("")
-
-
-class SettingsDialog(QDialog):
-    """⚙ Ayarlar: yeni sürüm bildirimi. Denetim yalnızca program açılışında yapılır."""
-
-    def __init__(self, parent, cfg):
-        super().__init__(parent)
-        self.setWindowTitle(_("⚙ Ayarlar"))
-        self.setMinimumWidth(560)
-        lay = QVBoxLayout(self)
-        h = QLabel(_("⬆ Güncelleme denetimi"))
-        h.setObjectName("h2")
-        lay.addWidget(h)
-        info = QLabel(_("Program her açıldığında yeni sürüm denetlenir."))
-        info.setWordWrap(True)
-        lay.addWidget(info)
-        self.c_notify = QCheckBox(_("Yeni sürüm bulununca bildirim göster"))
-        self.c_notify.setChecked(cfg["notify"])
-        lay.addWidget(self.c_notify)
-        # --- kullanım limitleri (kendi Firebase hesabının günlük sınırı)
-        lay.addWidget(kullanim_sayac.KullanimKarti(self))
-        # --- Asistan Agent (admin iletişimin önünde)
-        if AJAN is not None:
-            lay.addWidget(AJAN.card(self))
-        # --- admin ile iletişim (ayarların sonu)
-        h2 = QLabel(_("✉ Admin ile iletişime geç"))
-        h2.setObjectName("h2")
-        lay.addWidget(h2)
-        cinfo = QLabel(_("Programı geliştirmemiz için öneri, istek ve hata bildirimlerinizi yazın; "
-                         "mesajınız doğrudan yöneticiye ulaşır."))
-        cinfo.setWordWrap(True)
-        lay.addWidget(cinfo)
-        self.c_name = QLineEdit()
-        self.c_name.setPlaceholderText(_("Adınız (isteğe bağlı)"))
-        self.c_name.setMaxLength(80)
-        self.c_mail = QLineEdit()
-        self.c_mail.setPlaceholderText(_("E-posta (yanıt için, isteğe bağlı)"))
-        self.c_mail.setMaxLength(120)
-        self.c_mail.setLayoutDirection(Qt.LeftToRight)
-        row = QHBoxLayout()
-        row.addWidget(self.c_name)
-        row.addWidget(self.c_mail)
-        lay.addLayout(row)
-        self.c_msg = QTextEdit()
-        self.c_msg.setPlaceholderText(_("Mesajınız"))
-        self.c_msg.setAcceptRichText(False)
-        self.c_msg.setMinimumHeight(110)
-        lay.addWidget(self.c_msg)
-        crow = QHBoxLayout()
-        crow.addStretch()
-        self.c_send = QPushButton(_("✉ Gönder"))
-        self.c_send.clicked.connect(self.send_contact)
-        crow.addWidget(self.c_send)
-        lay.addLayout(crow)
-        bb = QHBoxLayout()
-        cancel = QPushButton(_("Vazgeç"))
-        cancel.clicked.connect(self.reject)
-        ok = QPushButton(_("Kaydet"))
-        ok.clicked.connect(self.save)
-        bb.addStretch()
-        bb.addWidget(cancel)
-        bb.addWidget(ok)
-        lay.addLayout(bb)
-
-    def save(self):
-        self.result_cfg = {"notify": self.c_notify.isChecked()}
-        self.accept()
-
-    def send_contact(self):
-        import base64 as _b64
-        import json as _json
-        import re as _re
-        import urllib.request as _ur
-        msg = self.c_msg.toPlainText().strip()[:5000]
-        mail = self.c_mail.text().strip()
-        if not msg:
-            QMessageBox.information(self, _("✉ Admin ile iletişime geç"), _("Lütfen mesajınızı yazın."))
-            return
-        if mail and not _re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", mail):
-            QMessageBox.information(self, _("✉ Admin ile iletişime geç"), _("E-posta adresi geçerli değil."))
-            return
-        to = _b64.b64decode("bW9jLmxpYW1ub3RvcnBANDMyMWxkaW50bWxkYmE=").decode()[::-1]
-        body = {"_subject": "Bereket Defter: yeni mesaj", "_template": "table", "_captcha": "false",
-                "Ad": self.c_name.text().strip() or "-", "Mesaj": msg, "Surum": APP_VERSION, "Cihaz": "Windows",
-                "Dil": i18n._lang}
-        if mail:
-            body["email"] = mail
-            body["_replyto"] = mail
-        self.c_send.setEnabled(False)
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        # v1.17: iki bağımsız kanal; biri kabul ederse mesaj ulaşmış sayılır.
-        # 1) Yöneticinin mesaj kutusu (Firestore "mesajlar", yalnızca yeni kayıt eklenebilir, kimse okuyamaz)
-        # 2) E-posta kopyası (FormSubmit: Referer'sız isteği reddeder; etkinleştirilmiş site Referer olarak gönderilir)
-        def _post(url, payload, extra):
-            hdr = {"Content-Type": "application/json", "Accept": "application/json",
-                   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BereketDefter/" + APP_VERSION}
-            hdr.update(extra)
-            req = _ur.Request(url, data=_json.dumps(payload).encode("utf-8"), headers=hdr, method="POST")
-            with _ur.urlopen(req, timeout=20) as r:
-                return r.status, _json.loads(r.read().decode("utf-8") or "{}")
-        ok = False
-        try:
-            F = lambda v: {"stringValue": str(v)[:4000]}
-            fields = {"mesaj": F(msg), "konu": F("Bereket Defter · Mesaj"), "dil": F(i18n._lang), "surum": F(APP_VERSION),
-                      "platform": F("Bereket Defter · Windows"),
-                      "zaman": {"timestampValue": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}}
-            if self.c_name.text().strip():
-                fields["ad"] = F(self.c_name.text().strip()[:100])
-            if mail:
-                fields["iletisim"] = F(mail)
-            st, _j = _post("https://firestore.googleapis.com/v1/projects/comm-calc-103111111/databases/(default)/documents/"
-                           "mesajlar?key=AIzaSyB12RFS6ENPpmnnPsETfjedNH-3hmNWQvA", {"fields": fields}, {})
-            ok = 200 <= st < 300
-        except Exception:
-            pass
-        try:
-            st, j = _post("https://formsubmit.co/ajax/" + to, body,
-                          {"Referer": "https://formsubmit.co/", "Origin": "https://formsubmit.co"})
-            ok = ok or str(j.get("success")).lower() == "true"
-        except Exception:
-            pass
-        QApplication.restoreOverrideCursor()
-        self.c_send.setEnabled(True)
-        if ok:
-            self.c_msg.clear()
-            QMessageBox.information(self, _("✉ Admin ile iletişime geç"),
-                                    _("Mesajınız yöneticiye iletildi. Teşekkürler!"))
-        else:
-            QMessageBox.warning(self, _("✉ Admin ile iletişime geç"),
-                                _("Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."))
-
-
 # ---------------------------------------------------------------- ana pencere
 class MainWindow(QWidget):
+    """Defter sayfası (ortak çekirdek kabuğunun içinde). Dil ya da renk şeması değişince yeniden kurulur;
+    eşitleme motoru, Wi‑Fi sunucusu ve bildirilen hatırlatıcılar db nesnesinde kalır."""
     ALL = -1
 
-    def __init__(self, db, first_start=True):
+    def __init__(self, db, first_start=True, shell=None):
         super().__init__()
         self.db = db
-        self.setWindowTitle(f"{_(APP_TITLE)}  v{APP_VERSION}")
-        self.setWindowIcon(QIcon(logo_pixmap(128)))
+        self.shell = shell
+        refresh_colors()
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        self.bg = Background()
+        self.bg = QWidget()
         outer.addWidget(self.bg)
         root = QVBoxLayout(self.bg)
         root.setContentsMargins(24, 16, 24, 20)
         root.setSpacing(14)
 
-        # --- başlık
+        # --- üst satır: hadis + saat + günlük işler (pencere/eşitleme/güncelleme düğmeleri ortak üst çubukta)
         head = QHBoxLayout()
-        lg = QLabel()
-        lg.setPixmap(logo_pixmap(96))
-        head.addWidget(lg)
-        tbox = QVBoxLayout()
-        t = QLabel(f'{html.escape(_(APP_TITLE))} <span style="font-size:15px;font-weight:600;color:#cfeee4">'
-                   f'v{APP_VERSION}</span>')
-        t.setObjectName("title")
+        head.setSpacing(12)
         self.quote_i = random.randrange(len(QUOTES))
         self.quote = QLabel(QUOTES[self.quote_i])
         self.quote.setObjectName("quote")
         self.quote.setWordWrap(True)
-        t.setWordWrap(True)
-        for lbl in (t, self.quote):
-            lbl.setMinimumWidth(200)
-            lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        tbox.addWidget(t)
-        tbox.addWidget(self.quote)
-        head.addLayout(tbox, 1)
-        rbox = QVBoxLayout()
+        self.quote.setMinimumWidth(200)
+        self.quote.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        head.addWidget(self.quote, 1)
         self.clock = QLabel()
         self.clock.setObjectName("clock")
         self.clock.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        crow = QHBoxLayout()
-        rbox.addLayout(crow)
-        brow = QHBoxLayout()
+        head.addWidget(self.clock)
         self.rem_btn = QPushButton()
         self.rem_btn.setObjectName("light")
         self.rem_btn.clicked.connect(lambda: self.open_reminders())
-        for text, fn, name in ((_("Tüm Kayıtlar Dökümü"), lambda: StatementDialog(self, self.db, None).exec(), "light"),
-                               (_("Yedek Al"), self.backup, "light"),
-                               (_("☁ Eşitleme"), self.open_sync, "light"),
-                               (_("⚙ Ayarlar"), self.open_settings, "light"),
-                               (_("Tam Ekran (F11)"), self.toggle_full, "light"),
-                               (_("Çıkış"), self.close, "danger")):
+        head.addWidget(self.rem_btn)
+        for text, fn in ((_("Tüm Kayıtlar Dökümü"), lambda: StatementDialog(self, self.db, None).exec()),
+                         (_("Yedek Al"), self.backup)):
             b = QPushButton(text)
-            b.setObjectName(name)
-            b.clicked.connect(fn)
-            brow.addWidget(b)
-        self.lang_box = QComboBox()
-        self.lang_box.setMinimumWidth(140)
-        for code, label in i18n.LANGS.items():
-            self.lang_box.addItem("🌐 " + label, code)
-        self.lang_box.setCurrentIndex(list(i18n.LANGS).index(i18n.lang()))
-        self.lang_box.currentIndexChanged.connect(self.change_language)
-        crow.addWidget(self.lang_box)
-        crow.addWidget(self.rem_btn)
-        crow.addStretch()
-        crow.addWidget(self.clock)
-        crow.addSpacing(10)
-        # sağ üst köşe: ☁ Eşitle + ⬆ Güncelleme (her zaman görünür)
-        self.sync_ind = QPushButton(_("☁ Eşitle"))
-        self.sync_ind.setObjectName("light")
-        self.sync_ind.setStyleSheet("padding:6px 12px;")
-        self.sync_ind.setCursor(Qt.PointingHandCursor)
-        self.sync_ind.clicked.connect(self.sync_button_clicked)
-        self.sync_ind.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.sync_ind.customContextMenuRequested.connect(lambda *_a: self.open_sync())
-        crow.addWidget(self.sync_ind)
-        self.upd_btn = QPushButton(_("⬆ Güncelleme"))
-        self.upd_btn.setObjectName("light")
-        self.upd_btn.setStyleSheet("padding:6px 12px;")
-        self.upd_btn.setCursor(Qt.PointingHandCursor)
-        self.upd_btn.clicked.connect(self.open_update)
-        crow.addWidget(self.upd_btn)
-        # admin duyuruları (🔔)
-        self.duyuru = duyuru_istemci.DuyuruIstemci(self, "bereket-defter", APP_VERSION, dil=i18n.lang, guncelle=self.open_update)
-        crow.addWidget(self.duyuru.dugme)
-        # pencere düğmeleri: küçült, yarım/tam ekran, kapat (tam ekranda Windows başlığı görünmediği için)
-        crow.addSpacing(6)
-        for txt, tip, fn in (("—", _("Küçült"), self.showMinimized),
-                             ("❐", _("Yarım ekran / Tam ekran"), self.toggle_half),
-                             ("✕", _("Kapat"), self.close)):
-            b = QPushButton(txt)
             b.setObjectName("light")
-            b.setToolTip(tip)
-            b.setFixedSize(38, 32)
-            b.setStyleSheet("padding:0; font-size:15px; font-weight:700;")
-            b.setCursor(Qt.PointingHandCursor)
             b.clicked.connect(fn)
-            crow.addWidget(b)
-        rbox.addLayout(brow)
-        head.addLayout(rbox)
+            head.addWidget(b)
         root.addLayout(head)
         self.banner = QLabel()
         self.banner.setWordWrap(True)
-        self.banner.setStyleSheet("background:#ffd24a;color:#2b1d00;font-size:17px;font-weight:700;"
-                                  "padding:10px 16px;border-radius:12px;")
+        self.banner.setObjectName("banner")
         self.banner.setCursor(Qt.PointingHandCursor)
         self.banner.mousePressEvent = lambda e: (self.banner.hide(), self.open_reminders())
         self.banner.hide()
@@ -2043,6 +1662,7 @@ class MainWindow(QWidget):
         self.search.textChanged.connect(self.load_persons)
         ll.addWidget(self.search)
         self.plist = QListWidget()
+        self.plist.setObjectName("plist")
         self.plist.setItemDelegate(PersonDelegate(self.plist))
         self.plist.currentItemChanged.connect(lambda *_a: self.load_person())
         self.plist.itemDoubleClicked.connect(lambda *_a: self.edit_person())
@@ -2135,7 +1755,7 @@ class MainWindow(QWidget):
         body.addWidget(right, 1)
         root.addLayout(body, 1)
 
-        for seq, fn in ((QKeySequence("F11"), self.toggle_full), (QKeySequence("Ctrl+N"), lambda: self.add_tx("VERDIM"))):
+        for seq, fn in ((QKeySequence("Ctrl+N"), lambda: self.add_tx("VERDIM")),):
             a = QAction(self)
             a.setShortcut(seq)
             a.triggered.connect(fn)
@@ -2148,7 +1768,6 @@ class MainWindow(QWidget):
         self.tick()
         self.load_persons()
         self.setup_sync()
-        self.setup_update()
 
         # hatırlatıcı bildirimleri
         if not hasattr(db, "notified"):
@@ -2157,7 +1776,7 @@ class MainWindow(QWidget):
         self.tray.setToolTip(_(APP_TITLE))
         self.tray.activated.connect(lambda *_a: self.open_reminders())
         self.tray_target = "reminder"
-        self.tray.messageClicked.connect(self.tray_message_clicked)
+        self.tray.messageClicked.connect(lambda: self.open_reminders())
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray.show()
         self.rtimer = QTimer(self, interval=30000, timeout=self.check_reminders)
@@ -2169,8 +1788,6 @@ class MainWindow(QWidget):
 
     # --- bulut eşitleme
     def setup_sync(self):
-        kullanim_sayac.baslat(self.db.dir, dil=i18n.lang, bulut=True, ai=False,
-                              proje=lambda: (self.sync.cfg.get("projectId") if getattr(self, "sync", None) and self.sync.cfg.get("uid") else ""))
         if not hasattr(self.db, "sync_engine"):  # dil değişince pencere yeniden kurulur; motor aynı kalır
             self.db.sync_engine = SyncEngine(self.db.dir, self.db.path)
         self.sync = self.db.sync_engine
@@ -2247,137 +1864,31 @@ class MainWindow(QWidget):
         self.update_sync_indicator()
 
     def update_sync_indicator(self):
+        """Ortak üst çubuktaki Eşitle düğmesi: durum + bekleyen değişiklik sayısı; Wi‑Fi düğmesi: sunucu açık mı."""
         s = self.sync
-        tip = _("Tıklayın: şimdi eşitle · Sağ tık: eşitleme ayarları")
+        tb = getattr(self.shell, "tb", None) if self.shell is not None else None
+        if tb is None:
+            return
         if not s.signed_in():
-            label, err = _("☁ Eşitle"), False
-            text = _("Eşitleme kapalı (giriş yapılmamış)")
+            st = "off"
+        elif s.busy:
+            st = "syncing"
         else:
-            text, err = sync_status_text(s)
-            if s.busy:
-                label = _("☁ ⟳ Eşitleniyor…")
-            elif err:
-                label = _("☁ ! Eşitle")
-            else:
-                last = s.cfg.get("lastSync") or ""
-                label = _("☁ Eşitle") + (" ✓ " + last[11:16] if last else "")
-        self.sync_ind.setText(label)
-        self.sync_ind.setToolTip(text + "\n" + tip)
-        name = "gold" if err else "light"
-        if self.sync_ind.objectName() != name:
-            self.sync_ind.setObjectName(name)
-            self.sync_ind.style().unpolish(self.sync_ind)
-            self.sync_ind.style().polish(self.sync_ind)
-
-    def setup_update(self):
-        first = not hasattr(self.db, "updater")
-        if first:  # dil değişince pencere yeniden kurulur; denetleyici, ayarlar ve bildirilenler aynı kalır
-            self.db.updater = guncelle.Updater(lambda: self.sync.cfg, APP_VERSION)
-            self.db.upd_cfg = guncelle.load_settings(self.db.dir)
-            self.db.upd_notified = set()
-        self.updater = self.db.updater
-        self.upd_seen = self.updater.seq
-        self.upd_popup_wanted = False
-        self.upd_poll = QTimer(self, interval=500, timeout=self.poll_update)
-        self.upd_poll.start()
-        if first:  # yalnızca program açılışında denetlenir
-            QTimer.singleShot(2500, lambda: self.updater.check_async(quiet=True))
-        self.update_update_button()
-
-    def open_settings(self):
-        d = SettingsDialog(self, self.db.upd_cfg)
-        if d.exec():
-            try:
-                self.db.upd_cfg = guncelle.save_settings(self.db.dir, d.result_cfg)
-            except OSError as e:
-                self.db.upd_cfg = dict(d.result_cfg)
-                QMessageBox.warning(self, _("⚙ Ayarlar"), _("Ayarlar kaydedilemedi: {}").format(e))
-
-    def poll_update(self):
-        self.update_update_button()
-        up = self.updater
-        modal = QApplication.activeModalWidget()
-        if up.seq != self.upd_seen:
-            self.upd_seen = up.seq
-            if up.state == "available":
-                ver = str(up.info.get("surum"))
-                if ver not in self.db.upd_notified:
-                    self.db.upd_notified.add(ver)
-                    if self.db.upd_cfg["notify"] and not isinstance(modal, UpdateDialog):
-                        self.notify_update(ver)
-        if self.upd_popup_wanted and modal is None and not getattr(self, "restarting", False):
-            self.upd_popup_wanted = False
-            if up.state == "available":
-                self.show_update_popup()
-
-    def notify_update(self, ver):
-        """Yeni sürüm bulundu: sistem bildirimi + (açık pencere yoksa hemen, varsa kapanınca) soru penceresi."""
-        text = _("Yeni sürüm hazır: {}").format("v" + ver)
-        tray = getattr(self, "tray", None)
-        if tray is not None and QSystemTrayIcon.isSystemTrayAvailable() and tray.supportsMessages():
-            self.tray_target = "update"
-            tray.showMessage(_("⬆ Güncelleme"), text + "\n" + _("Kurmak için tıklayın."), QIcon(logo_pixmap(64)), 15000)
-        QApplication.beep()
-        self.upd_popup_wanted = True
-
-    def show_update_popup(self):
-        info = self.updater.info or {}
-        box = QMessageBox(self)
-        box.setWindowTitle(_("⬆ Güncelleme"))
-        box.setIcon(QMessageBox.Information)
-        box.setText(_("Yeni sürüm hazır: {}").format("v" + str(info.get("surum"))) + "\n" +
-                    _("Kullandığınız sürüm: {}").format("v" + APP_VERSION))
-        notes = str(info.get("notlar") or "").strip()
-        box.setInformativeText((notes + "\n\n" if notes else "") +
-                               _("Güncelleme sadece program dosyalarını yeniler; kayıtlarınız, kişileriniz ve dekontlarınız "
-                                 "olduğu gibi kalır."))
-        go = box.addButton(_("⬆ Şimdi güncelle"), QMessageBox.AcceptRole)
-        box.addButton(_("Sonra"), QMessageBox.RejectRole)
-        box.exec()
-        if box.clickedButton() is go:
-            self.open_update(auto_install=True)
-
-    def tray_message_clicked(self):
-        if getattr(self, "tray_target", "") == "update":
-            self.upd_popup_wanted = False
-            self.open_update()
-        else:
-            self.open_reminders()
-
-    def update_update_button(self):
-        st = self.updater.state
-        if st == "available":
-            text, name = _("⬆ Yeni sürüm: {}").format("v" + str(self.updater.info.get("surum"))), "gold"
-        elif st == "downloading":
-            done, total = self.updater.progress
-            pct = f" %{min(100, int(done * 100 / total))}" if total else ""
-            text, name = _("⬆ Güncelleniyor…") + pct, "gold"
-        elif st == "installed":
-            text, name = _("⬆ Güncelleniyor…"), "gold"
-        else:
-            text, name = _("⬆ Güncelleme"), "light"
-        if self.upd_btn.text() != text or self.upd_btn.objectName() != name:
-            self.upd_btn.setText(text)
-            self.upd_btn.setObjectName(name)
-            self.upd_btn.style().unpolish(self.upd_btn)
-            self.upd_btn.style().polish(self.upd_btn)
-
-    def open_update(self, auto_install=False):
-        self.upd_popup_wanted = False
-        UpdateDialog(self, self.updater, auto_install).exec()
-        self.update_update_button()
-
-    def restart_after_update(self):
+            _text, err = sync_status_text(s)
+            st = "error" if err else "idle"
         try:
-            guncelle.restart_program()
-        except OSError as e:
-            QMessageBox.information(self, _("⬆ Güncelleme"),
-                                    _("Güncelleme kuruldu. Programı kapatıp yeniden açın.") + f"\n\n{e}")
-        self.restarting = True
-        QApplication.exit(0)
+            pend = self.db.pending_changes() if s.signed_in() else 0
+        except Exception:
+            pend = 0
+        tb.set_sync(st, pend)
+        lan = getattr(s, "lan_server", None)
+        tb.set_lan("on" if lan is not None and lan.running else "off")
+        if s.signed_in() and s.cfg.get("projectId"):
+            from fccore import usage
+            usage.set_project(s.cfg.get("projectId"))
 
-    def open_sync(self):
-        self.sync_dlg = SyncDialog(self, self.sync)
+    def open_sync(self, lan_only=False):
+        self.sync_dlg = SyncDialog(self, self.sync, lan_only=lan_only)
         try:
             self.sync_dlg.exec()
         finally:
@@ -2392,34 +1903,6 @@ class MainWindow(QWidget):
     def tick(self):
         n = datetime.now()
         self.clock.setText(f"{_(DAY_NAMES[n.weekday()])}, {n:%d.%m.%Y  %H:%M:%S}")
-
-    def toggle_half(self):
-        """Tam ekran ↔ ekranın yarısı (sol yarı) arasında geçiş."""
-        if self.isFullScreen() or self.isMaximized():
-            self.showNormal()
-            g = self.screen().availableGeometry()
-            self.setGeometry(g.x(), g.y(), g.width() // 2, g.height())
-        else:
-            self.showFullScreen()
-
-    def toggle_full(self):
-        self.showNormal() if self.isFullScreen() else self.showFullScreen()
-
-    def change_language(self, i):
-        code = self.lang_box.itemData(i)
-        if code != i18n.lang():
-            i18n.set_language(code)
-            self.restarting = True
-            QApplication.exit(RESTART)
-
-    def closeEvent(self, e):
-        if getattr(self, "restarting", False):
-            e.accept()
-            return
-        if QMessageBox.question(self, _("Çıkış"), _("Programdan çıkmak istiyor musunuz?")) == QMessageBox.Yes:
-            e.accept()
-        else:
-            e.ignore()
 
     def current_pid(self):
         it = self.plist.currentItem()
@@ -2546,7 +2029,7 @@ class MainWindow(QWidget):
                 if j == 7:
                     it.setTextAlignment(Qt.AlignCenter)
                     if not r["photo_count"]:
-                        it.setForeground(QBrush(QColor("#d97a00")))
+                        it.setForeground(QBrush(QColor(tok("warn-text"))))
                         it.setToolTip(_("Bu kaydın dekontu / belgesi yok"))
                 if j in (4, 5):
                     it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -2726,86 +2209,322 @@ class MainWindow(QWidget):
                                                        "saklamanız önerilir.").format(path))
 
 
-RESTART = 1000
+# ---------------------------------------------------------------- ortak çekirdek kabuğu (v1.21)
+APP_ID = "bereket-defter"
+KLASIK = {   # 1.20'ye kadarki görünüm: yeşil başlık, açık kartlar (her zaman açık temaydı)
+    "label": {"tr": "Klasik (eski görünüm)", "en": "Classic (previous look)", "ar": "الكلاسيكي (المظهر السابق)"},
+    "light": {
+        "bg": "#e7f1ee", "bg-grid": "#00000000", "panel": "#ffffffee", "panel-solid": "#ffffff", "panel-hover": "#f4faf8",
+        "border": "#c9d3d0", "border-strong": "#0f8f6a", "text": "#111111", "muted": "#667777", "label": "#06513f",
+        "nav-text": "#33504a", "nav-title": "#6a837d", "accent": "#0f8f6a", "accent-2": "#0b6e74", "on-accent": "#ffffff",
+        "primary-1": "#0f8f6a", "primary-2": "#0b6e74", "active-1": "#0f8f6a29", "active-2": "#0f8f6a12", "active-line": "#0f8f6a66",
+        "accent-soft": "#e3f4ee", "accent-line": "#0f8f6a59", "focus": "#0f8f6a", "focus-ring": "#0f8f6a33",
+        "danger": "#c0392b", "danger-text": "#c0392b", "danger-soft": "#fbe6e3", "danger-line": "#c0392b59",
+        "ok": "#0f8f6a", "ok-text": "#0f8f6a", "ok-soft": "#e3f4ee", "ok-line": "#0f8f6a59",
+        "warn": "#e0a200", "warn-text": "#5a4300", "warn-soft": "#fff3b0", "warn-line": "#e0a20080",
+        "sidebar-bg": "#ffffff", "topbar-bg": "#f4f6f5f0", "modal-bg": "#f4f6f5", "modal-border": "#c9d3d0",
+        "badge-text": "#06513f", "badge-bg": "#e3f4ee", "badge-line": "#c9d3d0", "on-badge": "#ffffff",
+        "bar-track": "#e6ecea", "scroll-thumb": "#0f8f6a59",
+    },
+    "dark": {
+        "bg": "#062b23", "bg-grid": "#00000000", "panel": "#0b3a30ee", "panel-solid": "#0b3a30", "panel-hover": "#0f4a3d",
+        "border": "#1c5a4b", "border-strong": "#34c29a", "text": "#eef7f4", "muted": "#a7c4bc", "label": "#cfeee4",
+        "nav-text": "#cfeee4", "nav-title": "#8fb7ab", "accent": "#34c29a", "accent-2": "#2aa6ad", "on-accent": "#04241c",
+        "primary-1": "#34c29a", "primary-2": "#2aa6ad", "active-1": "#34c29a33", "active-2": "#34c29a1a", "active-line": "#34c29a66",
+        "accent-soft": "#0f4a3d", "accent-line": "#34c29a59", "focus": "#34c29a", "focus-ring": "#34c29a33",
+        "danger": "#ff8a7a", "danger-text": "#ff8a7a", "danger-soft": "#4a1f1b", "danger-line": "#ff8a7a59",
+        "ok": "#5ee0b5", "ok-text": "#5ee0b5", "ok-soft": "#0f4a3d", "ok-line": "#5ee0b559",
+        "warn": "#ffd24a", "warn-text": "#ffd24a", "warn-soft": "#4a3a0a", "warn-line": "#ffd24a59",
+        "sidebar-bg": "#06513f", "topbar-bg": "#0b6e74", "modal-bg": "#062b23", "modal-border": "#1c5a4b",
+        "badge-text": "#eef7f4", "badge-bg": "#0f4a3d", "badge-line": "#1c5a4b", "on-badge": "#04241c",
+        "bar-track": "#0f4a3d", "scroll-thumb": "#a7c4bc40",
+    },
+}
+
+fccore.i18n.add({
+    "tr": {"bd.nav": "Defter", "bd.nav.book": "Alacak-Verecek", "bd.nav.settings": "Ayarlar", "bd.tag": "Alacak-Verecek Defteri",
+           "bd.sub": "Kişiler, kayıtlar, belgeler ve hatırlatıcılar", "bd.set.sub": "Görünüm, eşitleme, arşiv ve iletişim",
+           "bd.sync": "Eşitleme (telefon ⇄ bilgisayar)",
+           "bd.sync.desc": "Kayıtlar kendi Firebase hesabınızla telefon ve bilgisayarlar arasında eşitlenir; aynı ağdaysanız Wi‑Fi ile internetsiz de eşitlenir. Hiçbir kayıt silinmez ya da körü körüne üzerine yazılmaz.",
+           "bd.sync.open": "Eşitleme ayarları", "bd.sync.lan": "Wi‑Fi eşitleme",
+           "bd.arsiv": "Arşiv ve silinenler",
+           "bd.arsiv.desc": "Başka cihazda silinen kayıtlar bu cihazda silinmez, burada arşivlenir. Kendi sildikleriniz de burada durur; istediğinizi geri alabilirsiniz.",
+           "bd.arsiv.bos": "Arşivde kayıt yok.", "bd.arsiv.geri": "Geri al", "bd.arsiv.geriAlindi": "Geri alındı: {s}",
+           "bd.arsiv.olmadi": "Geri alınamadı: bağlı olduğu kişi ya da kayıt yok. Önce onu geri alın.",
+           "bd.arsiv.uzak": "başka cihazda silindi", "bd.arsiv.yerel": "bu cihazda silindi",
+           "bd.arsiv.yedek": "Çakışma yedeği: {n} kayıt", "bd.arsiv.yedekKaydet": "Yedekleri kaydet (JSON)",
+           "bd.tur.persons": "Kişi", "bd.tur.tx": "Kayıt", "bd.tur.rem": "Hatırlatıcı", "bd.tur.docs": "Belge",
+           "bd.yedek": "Yedek", "bd.yedek.desc": "Kayıtların ve belgelerin tam yedeğini ZIP dosyası olarak alın. Yedeği USB bellek gibi ayrı bir yerde saklayın.",
+           "bd.yedek.al": "Yedek al", "bd.cikis": "Programdan çıkmak istiyor musunuz?", "bd.cikis.t": "Çıkış",
+           "bd.ob.fb": "Firebase bilgileri kaydedildi. Eşitleme penceresinde e-posta ve şifrenizle giriş yapın (ilk kez ise \"Hesap oluştur\")."},
+    "en": {"bd.nav": "Ledger", "bd.nav.book": "Receivables & payables", "bd.nav.settings": "Settings", "bd.tag": "Receivables & Payables Ledger",
+           "bd.sub": "People, records, documents and reminders", "bd.set.sub": "Appearance, sync, archive and contact",
+           "bd.sync": "Sync (phone ⇄ computer)",
+           "bd.sync.desc": "Records sync between phones and computers through your own Firebase account; on the same network they also sync over Wi‑Fi without internet. Nothing is deleted or blindly overwritten.",
+           "bd.sync.open": "Sync settings", "bd.sync.lan": "Wi‑Fi sync",
+           "bd.arsiv": "Archive and deleted",
+           "bd.arsiv.desc": "Records deleted on another device are not deleted here; they are archived. Records you deleted yourself are kept here too, and you can restore any of them.",
+           "bd.arsiv.bos": "The archive is empty.", "bd.arsiv.geri": "Restore", "bd.arsiv.geriAlindi": "Restored: {s}",
+           "bd.arsiv.olmadi": "Could not restore: the person or record it belongs to is missing. Restore that first.",
+           "bd.arsiv.uzak": "deleted on another device", "bd.arsiv.yerel": "deleted on this device",
+           "bd.arsiv.yedek": "Conflict backup: {n} records", "bd.arsiv.yedekKaydet": "Save backups (JSON)",
+           "bd.tur.persons": "Person", "bd.tur.tx": "Record", "bd.tur.rem": "Reminder", "bd.tur.docs": "Document",
+           "bd.yedek": "Backup", "bd.yedek.desc": "Take a full backup of records and documents as a ZIP file. Keep it somewhere separate, such as a USB stick.",
+           "bd.yedek.al": "Back up", "bd.cikis": "Do you want to exit the program?", "bd.cikis.t": "Exit",
+           "bd.ob.fb": "Firebase details saved. Sign in with your e-mail and password in the sync window (first time: \"Create account\")."},
+    "ar": {"bd.nav": "الدفتر", "bd.nav.book": "الديون والمستحقات", "bd.nav.settings": "الإعدادات", "bd.tag": "دفتر الديون والمستحقات",
+           "bd.sub": "الأشخاص والسجلات والمستندات والتذكيرات", "bd.set.sub": "المظهر والمزامنة والأرشيف والتواصل",
+           "bd.sync": "المزامنة (الهاتف ⇄ الحاسوب)",
+           "bd.sync.desc": "تتم مزامنة السجلات بين الهواتف والحواسيب عبر حساب Firebase الخاص بك؛ وفي الشبكة نفسها تتم المزامنة عبر Wi‑Fi دون إنترنت أيضاً. لا يُحذف شيء ولا يُكتب فوق شيء دون تحقق.",
+           "bd.sync.open": "إعدادات المزامنة", "bd.sync.lan": "مزامنة Wi‑Fi",
+           "bd.arsiv": "الأرشيف والمحذوفات",
+           "bd.arsiv.desc": "السجلات المحذوفة على جهاز آخر لا تُحذف هنا بل تُؤرشف. وتبقى هنا أيضاً السجلات التي حذفتها بنفسك، ويمكنك استعادة أيٍّ منها.",
+           "bd.arsiv.bos": "الأرشيف فارغ.", "bd.arsiv.geri": "استعادة", "bd.arsiv.geriAlindi": "تمت الاستعادة: {s}",
+           "bd.arsiv.olmadi": "تعذّرت الاستعادة: الشخص أو السجل المرتبط غير موجود. استعده أولاً.",
+           "bd.arsiv.uzak": "حُذف على جهاز آخر", "bd.arsiv.yerel": "حُذف على هذا الجهاز",
+           "bd.arsiv.yedek": "نسخة احتياطية للتعارضات: {n} سجل", "bd.arsiv.yedekKaydet": "حفظ النسخ الاحتياطية (JSON)",
+           "bd.tur.persons": "شخص", "bd.tur.tx": "سجل", "bd.tur.rem": "تذكير", "bd.tur.docs": "مستند",
+           "bd.yedek": "النسخ الاحتياطي", "bd.yedek.desc": "خذ نسخة احتياطية كاملة من السجلات والمستندات كملف ZIP، واحفظها في مكان منفصل مثل ذاكرة USB.",
+           "bd.yedek.al": "نسخ احتياطي", "bd.cikis": "هل تريد الخروج من البرنامج؟", "bd.cikis.t": "خروج",
+           "bd.ob.fb": "تم حفظ بيانات Firebase. سجّل الدخول ببريدك الإلكتروني وكلمة المرور في نافذة المزامنة (أول مرة: «إنشاء حساب»)."},
+})
 
 
-def apply_language(app):
-    for t in getattr(app, "_translators", []):
-        app.removeTranslator(t)
-    app._translators = []
-    t = QTranslator(app)
-    if t.load(f"qtbase_{i18n.lang()}", QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
-        app.installTranslator(t)
-        app._translators.append(t)
-    app.setLayoutDirection(Qt.RightToLeft if i18n.is_rtl() else Qt.LeftToRight)
-    app.setApplicationName(_(APP_TITLE))
+def build_app(app, db, first_start=True):
+    """Çekirdek kabuğu: kenar çubuğu (Defter · Ayarlar), üst çubuk (Duyurular · Eşitle · Wi‑Fi · Güncelle · tema · dil |
+    Küçült · Orta · Tam ekran · Kapat), ayarlar ızgarası (Görünüm … Hakkında, Admin ile iletişim EN SON)."""
+    from fccore import settings as fcsettings, widgets as W
+    from fccore.window import FcWindow, Shell
+    from fccore.i18n import t
+
+    class Win(FcWindow):
+        def closeEvent(self, e):
+            if getattr(self, "quitting", False):
+                e.accept()
+                return
+            if QMessageBox.question(self, t("bd.cikis.t"), t("bd.cikis")) == QMessageBox.Yes:
+                e.accept()
+            else:
+                e.ignore()
+
+    win = Win(_(APP_TITLE))
+    win.setWindowIcon(QIcon(logo_pixmap(128)))
+    shell = Shell(win, name="Bereket", tag="bd.tag", version=APP_VERSION, logo="home")
+    shell.logo.setPixmap(logo_pixmap(34))
+    shell.db = db
+    host = QWidget()
+    hl = QVBoxLayout(host)
+    hl.setContentsMargins(0, 0, 0, 0)
+    shell.nav_group("bd.nav")
+    shell.page("defter", "bd.nav.book", "home", host, sub="bd.sub", scroll=False)
+    shell.defter = None
+
+    def esitle(_state=None):
+        d = shell.defter
+        if d is not None:
+            d.sync_button_clicked()
+
+    def wifi(_state=None):
+        d = shell.defter
+        if d is not None:
+            d.open_sync(lan_only=True)
+
+    shell.tb = shell.topbar.mount(sync={"on_click": esitle}, lan={"on_click": wifi}, update=app.fc.updates,
+                                  before=[app.fc.ann.button()] if app.fc.ann is not None else None)
+
+    def build_defter(first=False):
+        old = shell.defter
+        i18n.set_language(fccore.i18n.lang())
+        refresh_colors()
+        shell.defter = MainWindow(db, first_start=first, shell=shell)
+        hl.addWidget(shell.defter)
+        if old is not None:
+            old.setParent(None)
+            old.deleteLater()
+        if AJAN is not None:
+            try:
+                AJAN.attach_button(win)
+            except Exception:
+                pass
+
+    # --- ayarlar
+    setbox = QWidget()
+    sl = QVBoxLayout(setbox)
+    sl.setContentsMargins(0, 0, 0, 0)
+    shell.nav_group("bd.nav.settings")
+    shell.page("ayarlar", "bd.nav.settings", "settings", setbox, sub="bd.set.sub")
+    shell.grid = None
+
+    def sync_card():
+        c = W.Card("bereket-sync", t("bd.sync"), "sync", t("bd.sync.desc"))
+        c.add(W.hbox(W.button(t("bd.sync.open"), "btn small primary", icon="sync", slot=lambda: shell.defter and shell.defter.open_sync()),
+                     W.button(t("bd.sync.lan"), "btn small", icon="wifi", slot=wifi), stretch_end=True))
+        return c
+
+    def backup_card():
+        c = W.Card("bereket-yedek", t("bd.yedek"), "download", t("bd.yedek.desc"))
+        c.add(W.hbox(W.button(t("bd.yedek.al"), "btn small", icon="download", slot=lambda: shell.defter and shell.defter.backup()),
+                     stretch_end=True))
+        return c
+
+    def archive_card():
+        c = W.Card("bereket-arsiv", t("bd.arsiv"), "box", t("bd.arsiv.desc"))
+        rows = db.archived(60)
+        if not rows:
+            c.add(W.label(t("bd.arsiv.bos"), "muted"))
+        for a in rows[:40]:
+            line = QFrame()
+            line.setProperty("fc", "fc-li")
+            h = QHBoxLayout(line)
+            h.setContentsMargins(10, 6, 10, 6)
+            info = W.label(f"{t('bd.tur.' + a['tur'])} · {a['baslik'] or '—'}\n"
+                           f"{t('bd.arsiv.uzak') if a['kaynak'] == 'uzak' else t('bd.arsiv.yerel')} · {ts_display(a['at'])}",
+                           wrap=True)
+            h.addWidget(info, 1)
+
+            def geri(_=False, aid=a["id"], title=a["baslik"]):
+                try:
+                    ok = db.restore(aid)
+                except Exception as e:  # pragma: no cover
+                    ok = False
+                    print("geri alınamadı", e)
+                if ok:
+                    W.toast(t("bd.arsiv.geriAlindi", {"s": title or ""}), "ok")
+                    if shell.defter is not None:
+                        shell.defter.load_persons()
+                else:
+                    W.toast(t("bd.arsiv.olmadi"), "error", 7000)
+                rebuild_settings()
+            h.addWidget(W.button(t("bd.arsiv.geri"), "btn small", icon="sync", slot=geri))
+            c.add(line, top=6)
+        conf = db.conflicts()
+        if conf:
+            c.add(W.label(t("bd.arsiv.yedek", {"n": len(conf)}), "muted"), top=10)
+
+            def kaydet():
+                import json as _json
+                path, _f = QFileDialog.getSaveFileName(setbox, t("bd.arsiv.yedekKaydet"),
+                                                      f"bereket-cakisma-yedekleri-{datetime.now():%Y%m%d}.json", "JSON (*.json)")
+                if path:
+                    with open(path, "w", encoding="utf-8") as f:
+                        _json.dump([{k: r[k] for k in r.keys()} for r in conf], f, ensure_ascii=False, indent=1)
+            c.add(W.hbox(W.button(t("bd.arsiv.yedekKaydet"), "btn small", icon="download", slot=kaydet), stretch_end=True), top=6)
+        return c
+
+    def agent_card():
+        if AJAN is None:
+            return None
+        try:
+            box = AJAN.card(setbox)
+            box.setProperty("fc", "card")
+            return box
+        except Exception:
+            return None
+
+    def rebuild_settings():
+        old = shell.grid
+        shell.grid = fcsettings.build(cards=[sync_card(), archive_card(), backup_card(), agent_card()],
+                                      usage={"firebase": True, "ai": False,
+                                             "project": lambda: db.sync_engine.cfg.get("projectId") if getattr(db, "sync_engine", None) else ""},
+                                      about={"version": APP_VERSION, "on_check": (app.fc.updates.check if app.fc.updates else None)},
+                                      onboarding=onboarding_opts(shell))
+        sl.addWidget(shell.grid)
+        if old is not None:
+            old.setParent(None)
+            old.deleteLater()
+
+    shell.page_changed.connect(lambda k: k == "ayarlar" and rebuild_settings())
+    fccore.i18n.on_change(lambda l: (build_defter(), rebuild_settings()))
+    fcstyle.on_change(lambda st: (app.setStyleSheet(fcstyle.qss() + app_qss()), shell.defter is not None and
+                                  getattr(shell, "_scheme", None) != (st.get("scheme"), st.get("effective")) and
+                                  (setattr(shell, "_scheme", (st.get("scheme"), st.get("effective"))), build_defter())))
+    shell._scheme = (fcstyle.scheme(), fcstyle.effective())
+    app.setStyleSheet(fcstyle.qss() + app_qss())
+    build_defter(first_start)
+    rebuild_settings()
+    shell.show_page("defter")
+    return win, shell
 
 
-def force_light_theme(app):
-    """Windows koyu modda da yazılar siyah, arka planlar beyaz kalsın."""
-    try:
-        app.styleHints().setColorScheme(Qt.ColorScheme.Light)
-    except AttributeError:
-        pass
-    app.setStyle("Fusion")
-    pal = QPalette()
-    black, white = QColor("#111111"), QColor("#ffffff")
-    for grp in (QPalette.Active, QPalette.Inactive):
-        pal.setColor(grp, QPalette.Window, QColor("#f4f6f5"))
-        pal.setColor(grp, QPalette.WindowText, black)
-        pal.setColor(grp, QPalette.Base, white)
-        pal.setColor(grp, QPalette.AlternateBase, QColor("#f4faf8"))
-        pal.setColor(grp, QPalette.Text, black)
-        pal.setColor(grp, QPalette.Button, QColor("#eef2f1"))
-        pal.setColor(grp, QPalette.ButtonText, black)
-        pal.setColor(grp, QPalette.ToolTipBase, QColor("#fffbe6"))
-        pal.setColor(grp, QPalette.ToolTipText, black)
-        pal.setColor(grp, QPalette.PlaceholderText, QColor("#8a9590"))
-        pal.setColor(grp, QPalette.Highlight, QColor("#0f8f6a"))
-        pal.setColor(grp, QPalette.HighlightedText, white)
-        pal.setColor(grp, QPalette.Link, QColor("#0b6e74"))
-        pal.setColor(grp, QPalette.BrightText, QColor("#c0392b"))
-    for role in (QPalette.WindowText, QPalette.Text, QPalette.ButtonText):
-        pal.setColor(QPalette.Disabled, role, QColor("#8a9590"))
-    pal.setColor(QPalette.Disabled, QPalette.Base, QColor("#f0f0f0"))
-    app.setPalette(pal)
+def onboarding_opts(shell):
+    """İlk açılış rehberi: dil → görünüm → kendi Firebase'iniz (AI adımı yok)."""
+    from fccore.i18n import t
+
+    def on_fb(cfg, _code):
+        eng = getattr(shell.db, "sync_engine", None)
+        if eng is None or eng.signed_in():
+            return
+        with eng._lock:
+            eng.cfg["apiKey"] = cfg.get("apiKey", "")
+            eng.cfg["projectId"] = cfg.get("projectId", "")
+        eng._save()
+        shell._ob_fb = True
+
+    def on_close():
+        if getattr(shell, "_ob_fb", False) and shell.defter is not None:
+            shell._ob_fb = False
+            from fccore.widgets import toast
+            toast(t("bd.ob.fb"), "info", 9000)
+            QTimer.singleShot(400, shell.defter.open_sync)
+    return {"firebase": True, "ai": False, "on_firebase": on_fb, "on_close": on_close}
 
 
 def main():
-    if os.environ.pop("AV_YENIDEN_BASLAT", None):
-        import time
-        time.sleep(1.5)  # güncellemeden sonra eski pencerenin kapanmasını bekle
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
-    force_light_theme(app)
+    app.setApplicationName("Bereket Defter")
     i18n.load_language()
-    apply_language(app)
-    app.setStyleSheet(STYLE)
+    db = DB()
+    # çekirdek ayarları programın kendi veri klasöründe (fccore.json); ilk açılışta eski dil ayarı taşınır
+    fccore.storage.use(db.dir, app=APP_ID)
+    eski = os.path.exists(os.path.join(db.dir, "veriler.db")) and db.con.execute("SELECT COUNT(*) FROM persons").fetchone()[0] > 0
+    if fccore.storage.get("lang") is None:
+        fccore.storage.set("lang", i18n.lang())
+        if eski:   # 1.20'den gelen kullanıcı: rehber gösterilmez, "neler yeni" gösterilir
+            fccore.storage.set("onboarding.done", True)
+            if fccore.storage.get("whatsnew.seen") is None:
+                fccore.storage.set("whatsnew.seen", "1.20.0")
+    fcstyle.register_scheme("klasik", dark=KLASIK["dark"], light=KLASIK["light"], label=KLASIK["label"])
+    core = fccore.init(app, app_id=APP_ID, repo="bereket-defter", version=APP_VERSION, data_dir=db.dir, announcements=True)
+    from fccore import whatsnew
+    from notlar import NOTES
+    whatsnew.cfg["notes"] = lambda v: NOTES.get(str(v))
+    app.fc = core
+    i18n.set_language(fccore.i18n.lang())
     app.setWindowIcon(QIcon(logo_pixmap(128)))
 
     global AJAN
     if fc_agent is not None:
         try:
-            AJAN = fc_agent.Agent("bereket-defter", APP_VERSION, lang=lambda: i18n._lang, sync=True)
+            AJAN = fc_agent.Agent(APP_ID, APP_VERSION, lang=lambda: fccore.i18n.lang(), sync=True)
         except Exception:
             AJAN = None
-    db = DB()
-    first = True
-    while True:
-        w = MainWindow(db, first_start=first)
-        w.showFullScreen()
-        if AJAN is not None:
-            try:
-                AJAN.start(app, w) if first else AJAN.attach_button(w)
-            except Exception:
-                pass
-        first = False
-        code = app.exec()
-        w.hide()
-        w.deleteLater()
-        if code != RESTART:
-            return code
-        apply_language(app)
+    win, shell = build_app(app, db, first_start=True)
+    win.start()
+    if AJAN is not None:
+        try:
+            AJAN.start(app, win)
+        except Exception:
+            pass
+    core.after_show()
+    if not fccore.storage.get("onboarding.done", False) and not core.whatsnew_shown:
+        from fccore import onboarding as ob
+        QTimer.singleShot(700, lambda: ob.maybe_start(**onboarding_opts(shell)))
+    app._win, app._shell = win, shell
+    smoke = os.environ.get("BEREKET_SMOKE")   # CI: paketlenmiş exe açılıyor mu (eksik modül / yazı tipi)
+    if smoke:
+        def _smoke():
+            with open(smoke, "w", encoding="utf-8") as f:
+                f.write("ok " + APP_VERSION + " " + fcstyle.scheme())
+            win.quitting = True
+            app.quit()
+        QTimer.singleShot(4000, _smoke)
+    code = app.exec()
+    try:
+        db.sync_engine.lan_server.stop()
+    except Exception:
+        pass
+    return code
 
 
 if __name__ == "__main__":

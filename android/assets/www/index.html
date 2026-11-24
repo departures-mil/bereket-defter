@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light only">
+<meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#06513f">
 <title>Bereket Alacak-Verecek Defteri</title>
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="cekirdek/css/tokens.css">
+<link rel="stylesheet" href="cekirdek/css/core.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -28,20 +30,18 @@
   <img class="wm" src="assets/logo.svg" alt="">
 </div>
 <div id="app"></div>
+<script src="cekirdek/fc-core.js"></script>
+<script src="js/notlar.js"></script>
 <script src="js/i18n_desktop.js"></script>
 <script src="js/i18n_mobile.js"></script>
-<script src="js/kullanim.js"></script>
 <script src="js/core.js"></script>
 <script src="js/store.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/lan.js"></script>
-<script src="js/update.js"></script>
 <script src="js/docs.js"></script>
 <script src="js/statement.js"></script>
 <script src="js/forms.js"></script>
 <script src="js/ui.js"></script>
-<script src="js/duyuru.js"></script>
-<script>Duyuru.baslat({uygulama:"bereket-defter",surum:APP_VERSION,dil:function(){return LANG}});</script>
-<script>Kullanim.baslat({uygulama:"bereket-defter",bulut:true,ai:false,dil:function(){return LANG},proje:function(){try{return Sync.signedIn()?Sync.cfg().projectId:""}catch(e){return ""}}});</script>
+<script src="js/kabuk.js"></script>
 </body>
 </html>

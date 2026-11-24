@@ -50,13 +50,42 @@ def parse_old(text):
     return v if isinstance(v, dict) else {}
 
 
+POINTER = "veri-konumu.txt"   # v1.21: eski taşınabilir kurulumun veri klasörü (köprü yazar, kurulu program okur)
+
+
+def default_data_dir():
+    base = os.environ.get("APPDATA") if sys.platform == "win32" else os.path.expanduser("~/.local/share")
+    return os.path.join(base or os.path.expanduser("~"), "AlacakVerecek")
+
+
 def data_dir():
+    """Veri klasörü HİÇ değişmez: AV_DATA_DIR (eski taşınabilir başlatıcı) > köprünün bıraktığı işaret > %APPDATA%\\AlacakVerecek."""
     d = os.environ.get("AV_DATA_DIR")
     if not d:
-        base = os.environ.get("APPDATA") if sys.platform == "win32" else os.path.expanduser("~/.local/share")
-        d = os.path.join(base or os.path.expanduser("~"), "AlacakVerecek")
+        d = default_data_dir()
+        try:
+            with open(os.path.join(d, POINTER), encoding="utf-8-sig") as f:
+                alt = f.read().strip()
+            if alt and os.path.isfile(os.path.join(alt, "veriler.db")):
+                d = alt
+        except OSError:
+            pass
     os.makedirs(os.path.join(d, "fotograflar"), exist_ok=True)
     return d
+
+
+def remember_data_dir(d):
+    """Köprü: bu kurulumun veri klasörü varsayılan değilse, yeni kurulum aynı klasörü açsın diye işaret bırakır."""
+    d = os.path.abspath(d)
+    base = default_data_dir()
+    if os.path.normcase(d) == os.path.normcase(os.path.abspath(base)):
+        return False
+    os.makedirs(base, exist_ok=True)
+    tmp = os.path.join(base, POINTER + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(d)
+    os.replace(tmp, os.path.join(base, POINTER))
+    return True
 
 
 SCHEMA = """
@@ -145,6 +174,12 @@ class DB:
                     extra.get(t, ()):
                 if c not in cols:
                     self.con.execute(f"ALTER TABLE {t} ADD COLUMN {c} {decl}")
+        # v1.21: hiçbir kayıt kalıcı silinmez — silinen (bu cihazda ya da başka cihazda) arşive, çakışmada eski hal yedeğe
+        self.con.execute("CREATE TABLE IF NOT EXISTS arsiv(id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, "
+                         "kaynak TEXT NOT NULL, tur TEXT NOT NULL, uid TEXT, baslik TEXT, veri TEXT NOT NULL, "
+                         "geri INTEGER NOT NULL DEFAULT 0)")
+        self.con.execute("CREATE TABLE IF NOT EXISTS cakisma(id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, "
+                         "tur TEXT NOT NULL, uid TEXT, veri TEXT NOT NULL)")
         self.con.execute("CREATE TABLE IF NOT EXISTS tombstones(col TEXT NOT NULL, uid TEXT NOT NULL, "
                          "m INTEGER NOT NULL, dirty INTEGER NOT NULL DEFAULT 1, chunks INTEGER DEFAULT 0, "
                          "PRIMARY KEY(col, uid))")
@@ -181,8 +216,16 @@ class DB:
                              (col, uid, m, chunks))
 
     def _remove_file(self, row):
+        """v1.21: belge dosyası silinmez, fotograflar/arsiv altına taşınır (arşivden geri alınabilir)."""
+        src = self.photo_path(row)
+        if not os.path.isfile(src):
+            return
+        dst = os.path.join(self.photo_dir, "arsiv", row["file"])
         try:
-            os.remove(self.photo_path(row))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.exists(dst):
+                dst = os.path.splitext(dst)[0] + "-" + new_uid()[:6] + os.path.splitext(dst)[1]
+            os.replace(src, dst)
         except OSError:
             pass
 
@@ -239,6 +282,7 @@ class DB:
         self.update_contact(pid, {"ch_" + ch: on})
 
     def delete_person(self, pid):
+        self.archive("persons", pid)
         m = self._m()
         for t in self.con.execute("SELECT id, uid FROM transactions WHERE person_id=?", (pid,)).fetchall():
             self._tomb_photos(t["id"], m)
@@ -346,6 +390,7 @@ class DB:
         self._changed()
 
     def delete_tx(self, tid):
+        self.archive("tx", tid)
         self._log(tid, "SILINDI")
         m = self._m()
         self._tomb_photos(tid, m)
@@ -385,6 +430,7 @@ class DB:
     def delete_photo(self, photo_id):
         r = self.con.execute("SELECT * FROM photos WHERE id=?", (photo_id,)).fetchone()
         if r:
+            self.archive("docs", photo_id)
             self._remove_file(r)
             self._tomb("docs", r["uid"], self._m(), r["chunks"] if r["blobs_up"] else 0)
             self.con.execute("DELETE FROM photos WHERE id=?", (photo_id,))
@@ -392,7 +438,164 @@ class DB:
             self._changed()
 
     def _remove_photo_files(self, tid):
-        shutil.rmtree(os.path.join(self.photo_dir, str(tid)), ignore_errors=True)
+        """Kaydın klasöründe kalan dosyalar da arşive taşınır; yalnız boş klasör silinir."""
+        d = os.path.join(self.photo_dir, str(tid))
+        if not os.path.isdir(d):
+            return
+        for root, _dirs, files in os.walk(d):
+            for f in files:
+                rel = os.path.relpath(os.path.join(root, f), self.photo_dir)
+                self._remove_file({"file": rel})
+        shutil.rmtree(d, ignore_errors=True)
+
+    # --- arşiv (v1.21: kalıcı silme yok) ------------------------------------
+    @staticmethod
+    def _row(r):
+        return {k: r[k] for k in r.keys()} if r is not None else None
+
+    def snapshot(self, tur, rid):
+        """Silinmeden önceki tam hal (bağlı kayıtlarla): {'tur', 'person', 'tx': [{..., 'photos': [...]}], 'rem': [...]}."""
+        con = self.con
+        R = self._row
+        if tur == "persons":
+            p = con.execute("SELECT * FROM persons WHERE id=?", (rid,)).fetchone()
+            if not p:
+                return None
+            txs = []
+            for t in con.execute("SELECT * FROM transactions WHERE person_id=? ORDER BY id", (rid,)).fetchall():
+                d = R(t)
+                d["photos"] = [R(x) for x in con.execute("SELECT * FROM photos WHERE tx_id=?", (t["id"],))]
+                txs.append(d)
+            rems = [R(x) for x in con.execute("SELECT * FROM reminders WHERE person_id=?", (rid,))]
+            return {"tur": tur, "person": R(p), "tx": txs, "rem": rems, "baslik": p["name"]}
+        if tur == "tx":
+            t = con.execute("SELECT t.*, p.uid puid, p.name pname FROM transactions t LEFT JOIN persons p "
+                            "ON p.id=t.person_id WHERE t.id=?", (rid,)).fetchone()
+            if not t:
+                return None
+            d = R(t)
+            d["photos"] = [R(x) for x in con.execute("SELECT * FROM photos WHERE tx_id=?", (rid,))]
+            return {"tur": tur, "tx": [d], "baslik": f"{t['pname'] or ''} · {t['ts'][:16]} · {t['amount']:g} {t['currency']}"}
+        if tur == "rem":
+            r = con.execute("SELECT r.*, p.uid puid, p.name pname FROM reminders r LEFT JOIN persons p "
+                            "ON p.id=r.person_id WHERE r.id=?", (rid,)).fetchone()
+            if not r:
+                return None
+            return {"tur": tur, "rem": [R(r)], "baslik": f"{r['pname'] or ''} · {r['due'][:16]} · {r['note'] or ''}"}
+        if tur == "docs":
+            ph = con.execute("SELECT f.*, t.uid tuid FROM photos f LEFT JOIN transactions t ON t.id=f.tx_id "
+                             "WHERE f.id=?", (rid,)).fetchone()
+            if not ph:
+                return None
+            return {"tur": tur, "photos": [R(ph)], "baslik": ph["original_name"] or os.path.basename(ph["file"])}
+        return None
+
+    def archive(self, tur, rid, kaynak="yerel"):
+        """Satır silinmeden önce çağrılır (commit etmez)."""
+        snap = self.snapshot(tur, rid)
+        if not snap:
+            return None
+        uid = (snap.get("person") or (snap.get("tx") or snap.get("rem") or snap.get("photos") or [{}])[0]).get("uid")
+        cur = self.con.execute("INSERT INTO arsiv(at,kaynak,tur,uid,baslik,veri) VALUES(?,?,?,?,?,?)",
+                               (now(), kaynak, tur, uid, str(snap.get("baslik") or "")[:200],
+                                json.dumps(snap, ensure_ascii=False, default=str)))
+        return cur.lastrowid
+
+    def archived(self, limit=200):
+        return self.con.execute("SELECT * FROM arsiv WHERE geri=0 ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+
+    def save_conflict(self, tur, uid, row):
+        self.con.execute("INSERT INTO cakisma(at,tur,uid,veri) VALUES(?,?,?,?)",
+                         (now(), tur, uid, json.dumps(self._row(row) if not isinstance(row, dict) else row,
+                                                      ensure_ascii=False, default=str)))
+
+    def conflicts(self):
+        return self.con.execute("SELECT * FROM cakisma ORDER BY id DESC").fetchall()
+
+    def _restore_file(self, ph):
+        arc = os.path.join(self.photo_dir, "arsiv", ph["file"])
+        dst = os.path.join(self.photo_dir, ph["file"])
+        if os.path.isfile(arc) and not os.path.exists(dst):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            os.replace(arc, dst)
+
+    def restore(self, aid):
+        """Arşivdeki kaydı geri koyar (aynı kimlikle, yeni değişiklik zamanıyla → diğer cihazlara da geri gelir)."""
+        a = self.con.execute("SELECT * FROM arsiv WHERE id=?", (aid,)).fetchone()
+        if not a or a["geri"]:
+            return False
+        snap = json.loads(a["veri"])
+        con, m = self.con, self._m()
+        SKIP = ("id", "puid", "pname", "tuid", "photos", "person_name")
+
+        def ins(table, row, **over):
+            row = {k: v for k, v in row.items() if k not in SKIP}
+            row.update(over)
+            row.update({"m": m, "dirty": 1})
+            ex = con.execute(f"SELECT id FROM {table} WHERE uid=?", (row.get("uid"),)).fetchone()
+            if ex:
+                return ex[0]
+            cols = [r[1] for r in con.execute(f"PRAGMA table_info({table})")]
+            row = {k: v for k, v in row.items() if k in cols}
+            cur = con.execute(f"INSERT INTO {table}({','.join(row)}) VALUES({','.join('?' * len(row))})", list(row.values()))
+            con.execute("DELETE FROM tombstones WHERE uid=?", (row.get("uid"),))
+            return cur.lastrowid
+
+        def pid_of(uid):
+            r = con.execute("SELECT id FROM persons WHERE uid=?", (uid,)).fetchone() if uid else None
+            return r[0] if r else None
+
+        def tid_of(uid):
+            r = con.execute("SELECT id FROM transactions WHERE uid=?", (uid,)).fetchone() if uid else None
+            return r[0] if r else None
+
+        def put_tx(t, pid):
+            if pid is None:
+                return None
+            tid = ins("transactions", t, person_id=pid)
+            for ph in t.get("photos") or []:
+                newfile = os.path.join(str(tid), os.path.basename(ph["file"]))
+                self._restore_file(ph)
+                src = os.path.join(self.photo_dir, ph["file"])
+                dst = os.path.join(self.photo_dir, newfile)
+                if os.path.isfile(src) and src != dst:
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    os.replace(src, dst)
+                ins("photos", ph, tx_id=tid, file=newfile, blobs_up=0)
+            return tid
+        try:
+            if snap["tur"] == "persons":
+                pid = ins("persons", snap["person"])
+                for t in snap.get("tx") or []:
+                    put_tx(t, pid)
+                for r in snap.get("rem") or []:
+                    ins("reminders", r, person_id=pid)
+            elif snap["tur"] == "tx":
+                t = snap["tx"][0]
+                pid = pid_of(t.get("puid"))
+                if pid is None:
+                    return False
+                put_tx(t, pid)
+            elif snap["tur"] == "rem":
+                r = snap["rem"][0]
+                pid = pid_of(r.get("puid"))
+                if pid is None:
+                    return False
+                ins("reminders", r, person_id=pid)
+            elif snap["tur"] == "docs":
+                ph = snap["photos"][0]
+                tid = tid_of(ph.get("tuid"))
+                if tid is None:
+                    return False
+                self._restore_file(ph)
+                ins("photos", ph, tx_id=tid, blobs_up=0)
+            con.execute("UPDATE arsiv SET geri=1 WHERE id=?", (aid,))
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        self._changed()
+        return True
 
     # --- hatırlatıcılar ----------------------------------------------------
     # TAHSIL: kişiden alınacak (tahsil edilecek), ODEME: kişiye verilecek (ödenecek)
@@ -435,6 +638,7 @@ class DB:
     def delete_reminder(self, rid):
         r = self.reminder(rid)
         if r:
+            self.archive("rem", rid)
             self._tomb("rem", r["uid"], self._m())
         self.con.execute("DELETE FROM reminders WHERE id=?", (rid,))
         self.con.commit()

@@ -1,6 +1,13 @@
 __pycache__/
 *.pyc
 *.jks
+*.keystore
+*.p12
 sifre.txt
 esitleme.json
 Veriler/
+/dist/
+/build/
+/release/
+node_modules/
+.pytest_cache/

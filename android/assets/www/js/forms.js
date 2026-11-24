@@ -443,127 +443,8 @@ const Forms = {
   },
 
   /* ================================================================ güncelleme */
-  update(opt) {
-    opt = opt || {};
-    const msg = h("div", { class: "upd-msg", role: "status" });
-    const notes = h("div", { class: "upd-notes muted" });
-    // indirme: çubuk + her bilgi ayrı parça (parça ortadan bölünmez, sığmazsa bütün olarak alt satıra geçer)
-    const bar = h("i");
-    const stats = h("div", { class: "upd-stats" });
-    const progBox = h("div", { class: "upd-prog", hidden: true }, h("div", { class: "upd-bar" }, bar), stats);
-    const stat = (label, val) => h("span", { class: "upd-stat" }, label ? h("b", null, label + " ") : null, ltr(val));
-    const goBtn = btn(t("⬆ Güncelle"), "primary", () => Upd.install());
-    const checkBtn = btn(t("Tekrar denetle"), "light", () => Upd.check());
-    const paint = () => {
-      const st = Upd.state, info = Upd.info || {};
-      goBtn.hidden = !(st === "available" || (st === "apk" && Upd.err === "IZIN") || (st === "error" && info.surum && versionNewer(info.surum, APP_VERSION)));
-      checkBtn.disabled = ["checking", "downloading", "installed"].includes(st);
-      notes.textContent = info.surum && versionNewer(info.surum, APP_VERSION) ? String(info.notlar || "") : "";
-      let text = "";
-      if (st === "checking") text = t("Yeni sürüm denetleniyor…");
-      else if (st === "none") text = t("Uygulama güncel. Yeni sürüm yok.");
-      else if (st === "available") text = tf("Yeni sürüm hazır: {}", "v" + info.surum);
-      else if (st === "downloading") {
-        const p = Upd.progInfo();
-        text = p ? tf("Güncelleme indiriliyor… %{}", p.pct) : t("Güncelleme indiriliyor…");
-        bar.style.width = (p ? p.pct : 0) + "%";
-        clear(stats);
-        if (p) {
-          stats.append(stat("", p.size), stat(t("Kalan:"), p.left));
-          if (p.speed) stats.append(stat(t("Hız:"), p.speed));
-          if (p.eta) stats.append(stat(t("Kalan süre:"), p.eta));
-        }
-      }
-      else if (st === "installed") text = t("Güncelleme kuruldu. Uygulama yeniden açılıyor…");
-      else if (st === "apk") text = Upd.err === "IZIN"
-        ? t("Android, bu uygulamanın güncelleme kurmasına izin istiyor: açılan ekranda 'Bu kaynaktan izin ver'i açın, geri dönüp tekrar ⬆ Güncelle'ye dokunun.")
-        : t("Android kurulum ekranı açıldı: 'Güncelle'ye dokunun. Kayıtlarınız silinmez.");
-      else if (st === "error") text = Upd.errText();
-      msg.textContent = text;
-      msg.dataset.kind = st;
-      progBox.hidden = st !== "downloading";
-    };
-    const entry = Sheets.open({ title: t("⬆ Güncelleme"), cls: "dialog",
-      body: h("div", { class: "about" },
-        h("div", null, tf("Kullandığınız sürüm: {}", "v" + APP_VERSION)), msg, progBox, notes,
-        h("p", { class: "muted" }, t("Güncelleme sadece uygulamayı yeniler; kayıtlarınız, kişileriniz ve belgeleriniz olduğu gibi kalır."))),
-      footer: [checkBtn, btn(t("⚙ Ayarlar"), "light", () => Forms.settings()), btn(t("Kapat"), "light", () => Sheets.close(entry)), goBtn] });
-    entry.isUpdate = true;
-    Upd.popupWanted = false;
-    Upd.listeners.push(paint);
-    entry.onClose = () => { const i = Upd.listeners.indexOf(paint); if (i >= 0) Upd.listeners.splice(i, 1); };
-    if (opt.autoInstall && Upd.state === "available") Upd.install();
-    else if (["idle", "none", "error"].includes(Upd.state)) Upd.check();
-    paint();
-  },
-
-  /* ================================================================ ayarlar */
-  settings() {
-    const c = Upd.cfg();
-    const i = h("input", { type: "checkbox", checked: !!c.notify });
-    let entry;
-    const save = () => { Upd.setCfg({ notify: i.checked }); Sheets.close(entry); toast(t("Kaydedildi")); };
-    entry = Sheets.open({ title: t("⚙ Ayarlar"), cls: "dialog",
-      body: h("div", { class: "settings" },
-        h("h3", null, t("⬆ Güncelleme denetimi")),
-        h("p", null, t("Uygulama her açıldığında yeni sürüm denetlenir.")),
-        h("label", { class: "chk set-chk" }, i, h("span", null, t("Yeni sürüm bulununca bildirim göster"))),
-        window.Kullanim ? Kullanim.kart() : "",
-        Forms.contactBox()),
-      footer: [btn(t("Vazgeç"), "light", () => Sheets.close(entry)), btn(t("Kaydet"), "primary", save)] });
-  },
-
-  async _contactSend(it) {
-    const F = (v) => ({ stringValue: String(v || "").slice(0, 4000) });
-    const fields = { mesaj: F(it.m), konu: F("Bereket Defter · Mesaj"), dil: F(document.documentElement.lang || ""), surum: F(APP_VERSION), platform: F("Bereket Defter · Android"), zaman: { timestampValue: new Date().toISOString() } };
-    if (it.n) fields.ad = F(it.n);
-    if (it.e) fields.iletisim = F(it.e);
-    const to = atob("bW9jLmxpYW1ub3RvcnBANDMyMWxkaW50bWxkYmE=").split("").reverse().join("");
-    const inbox = fetch("https://firestore.googleapis.com/v1/projects/comm-calc-103111111/databases/(default)/documents/mesajlar?key=AIzaSyB12RFS6ENPpmnnPsETfjedNH-3hmNWQvA",
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields }) }).then((r) => r.ok, () => false);
-    const mailP = fetch("https://formsubmit.co/ajax/" + to, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(it.body) })
-      .then((r) => r.json().catch(() => ({}))).then((j) => String(j.success) === "true", () => false);
-    const [a, b] = await Promise.all([inbox, mailP]);
-    return a || b;
-  },
-  _contactQueue(it) {
-    try { const q = JSON.parse(localStorage.getItem("adminIletisim.kuyruk") || "[]"); q.push(it); localStorage.setItem("adminIletisim.kuyruk", JSON.stringify(q.slice(-20))); } catch (x) {}
-  },
-  async _contactFlush() {
-    let q; try { q = JSON.parse(localStorage.getItem("adminIletisim.kuyruk") || "[]"); } catch (x) { q = []; }
-    if (!q.length || !navigator.onLine) return;
-    const left = [];
-    for (const it of q) { if (!(await Forms._contactSend(it))) left.push(it); }
-    try { localStorage.setItem("adminIletisim.kuyruk", JSON.stringify(left)); } catch (x) {}
-  },
-
-  /* admin ile iletişim: mesaj FormSubmit üzerinden yöneticinin e-postasına gider; adres programda görünmez */
-  contactBox() {
-    const name = inp({ maxlength: 80, dir: "auto", placeholder: t("Adınız (isteğe bağlı)") });
-    const mail = inp({ type: "email", maxlength: 120, dir: "ltr", placeholder: t("E-posta (yanıt için, isteğe bağlı)") });
-    const msg = h("textarea", { class: "inp", maxlength: 5000, dir: "auto", rows: 5, placeholder: t("Mesajınız"), style: "width:100%;box-sizing:border-box" });
-    let busy = false;
-    const send = btn(t("✉ Gönder"), "primary", async () => {
-      if (busy) return;
-      const m = msg.value.trim(), e = mail.value.trim();
-      if (!m) { toast(t("Lütfen mesajınızı yazın.")); return; }
-      if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { toast(t("E-posta adresi geçerli değil.")); return; }
-      const to = atob("bW9jLmxpYW1ub3RvcnBANDMyMWxkaW50bWxkYmE=").split("").reverse().join("");
-      const body = { _subject: "Bereket Defter: yeni mesaj", _template: "table", _captcha: "false", Ad: name.value.trim() || "-", Mesaj: m, Surum: APP_VERSION, Cihaz: "Android", Dil: document.documentElement.lang || "" };
-      if (e) { body.email = e; body._replyto = e; }
-      busy = true; send.disabled = true;
-      // v1.17: iki bağımsız kanal — yöneticinin mesaj kutusu (Firestore, yalnızca ekleme) + e-posta kopyası (FormSubmit).
-      // Biri kabul ederse mesaj ulaşmış sayılır; ikisi de olmazsa mesaj saklanır ve internet gelince yeniden gönderilir.
-      const item = { m, e, n: name.value.trim().slice(0, 100), body };
-      if (await Forms._contactSend(item)) { msg.value = ""; toast(t("Mesajınız yöneticiye iletildi. Teşekkürler!")); }
-      else { Forms._contactQueue(item); msg.value = ""; toast(t("İnternet yok; mesajınız saklandı, bağlantı gelince kendiliğinden gönderilecek.")); }
-      busy = false; send.disabled = false;
-    });
-    return h("div", { class: "contact-box" },
-      h("h3", null, t("✉ Admin ile iletişime geç")),
-      h("p", null, t("Programı geliştirmemiz için öneri, istek ve hata bildirimlerinizi yazın; mesajınız doğrudan yöneticiye ulaşır.")),
-      name, mail, msg, send);
-  },
+  /* ⚙ Ayarlar: ortak çekirdek ızgarası (Görünüm · Eşitleme · Arşiv · Yedek · Kullanım · Hata raporu · Hakkında · Admin ile iletişim EN SON) */
+  settings() { Kabuk.ayarlar(); },
 
   /* ================================================================ eşitleme */
   sync() {
@@ -665,7 +546,7 @@ const Forms = {
     const item = (emo, label, fn) => h("button", { type: "button", class: "menu-item", onclick: () => { Sheets.close(entry); fn(); } },
       h("span", { class: "mi-emo" }, emo), h("span", null, label));
     const langs = seg(Object.entries(LANGS).map(([k, v]) => ({ v: k, label: v })), LANG, v => {
-      setLang(v);
+      setLang(v);   // FC.i18n de değişir → kabuk.js ekranı yeniden kurar
       Sheets.closeAll();
       App.build();
       Rem.scheduleAll();
@@ -678,7 +559,7 @@ const Forms = {
       item("💾", t("Yedek Al"), () => Backup.export()),
       item("♻", t("Yedekten Geri Yükle"), () => Backup.import()),
       item("⚙", t("⚙ Ayarlar").replace("⚙ ", ""), () => Forms.settings()),
-      item("⬆", Upd.state === "available" ? tf("Güncelleme: {} hazır", "v" + Upd.info.surum) : t("Güncelleme"), () => Forms.update()),
+      item("⬆", t("Güncelleme"), () => Kabuk.guncelle()),
       item("ℹ", t("Hakkında"), () => Forms.about()),
     ];
     if (bridgeHas("exitApp")) items.push(item("⏻", t("Çıkış"), async () => {
@@ -741,5 +622,3 @@ const Backup = {
 };
 
 // v1.17: bekleyen admin mesajlarını internet gelince gönder
-window.addEventListener("online", () => Forms._contactFlush());
-setTimeout(() => Forms._contactFlush(), 5000);

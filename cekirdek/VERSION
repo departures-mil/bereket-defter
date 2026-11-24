@@ -1,0 +1,9 @@
+ortak-cekirdek fe5a3d9079d50505e3544c2d0c3ef15a9eff363f
+https://github.com/departures-mil/ortak-cekirdek/tree/fe5a3d9079d50505e3544c2d0c3ef15a9eff363f
+Kopyalanan (değiştirmeden):
+- qt/fccore → masaustu/fccore/            (masaüstü PySide6 kabuğu, güncelleme, iletişim, çökme, rehber, Kullanım Limitleri)
+- web/dist/fc-core.js, web/css, web/fonts → mobil/cekirdek/   (telefon WebView arayüzü)
+- delta/java/FcDelta.java → android/java/com/departuresmil/ortak/ (+ derlenmiş smali: android/smali/com/departuresmil/ortak/)
+- python/fc_agent.py → masaustu/fc_agent.py (Asistan Agent; fccore'da henüz yok)
+Yerel ek (çekirdekte değil): android/java/com/bereket/alacakverecek/FcGuncelle.java — apktool/smali APK için
+  ApkPatchInstaller yerine: indirme + FCD1 yama + SHA-256 + mevcut FilesProvider ile kurulum.
