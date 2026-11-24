@@ -439,8 +439,8 @@ T = {
     "{} MB/sn": ("{} MB/s", "{} MB/s"),
     "{} KB/sn": ("{} KB/s", "{} KB/s"),
     "~{} sn": ("~{} s", "~{} s"),
-    "~{} dk": ("~{} min", "~{} min"),
-    "~{} dk {} sn": ("~{} min {} s", "~{} min {} s"),
+    "~{} dk": ("~{} min", "~{} د"),
+    "~{} dk {} sn": ("~{} min {} s", "~{} د {} ث"),
     "Kalan:": ("Left:", "المتبقي:"),
     "Hız:": ("Speed:", "السرعة:"),
     "Kalan süre:": ("Time left:", "الوقت المتبقي:"),
@@ -579,3 +579,8 @@ T.update({
                                                     "آخر مزامنة عبر Wi‑Fi: {} · وارد {} · صادر {}"),
     "telefon": ("phone", "الهاتف"),
 })
+
+
+# v1.21.1: ana ekran hadisleri (İngilizce / Arapça) — masaustu/hadis.py
+from hadis import HADIS as _HADIS  # noqa: E402
+T.update(_HADIS)

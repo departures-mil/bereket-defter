@@ -182,3 +182,25 @@ sys.exit(main.main())
     s = json.load(open(tmp_path / "s.json"))
     assert s["sync"] and s["tam"] and s["rtl"] and s["iletisim_son"] and s["lan"]
     assert s["ust"][-4:] == ["minimize", "half", "fullscreen", "close"], s["ust"]
+
+
+def test_hadisler_uc_dilde_ve_telefonla_ayni():
+    """1.21.1: her hadisin İngilizce ve Arapça karşılığı var; telefon sözlüğü masaüstüyle aynı."""
+    sys.path.insert(0, os.path.join(KOK, "masaustu"))
+    import hadis
+    src = open(os.path.join(KOK, "masaustu", "main.py"), encoding="utf-8").read()
+    ns = {}
+    i = src.index("QUOTES = [")
+    exec(src[i:src.index("]\n", i) + 1], ns)
+    js = open(os.path.join(KOK, "mobil", "js", "i18n_mobile.js"), encoding="utf-8").read()
+    jsq = open(os.path.join(KOK, "mobil", "js", "core.js"), encoding="utf-8").read()
+    for q in ns["QUOTES"]:
+        en, ar = hadis.HADIS[q]
+        assert en and re.search(r"[؀-ۿ]", ar), q
+        assert json.dumps(q, ensure_ascii=False) in jsq
+        assert "%s: [%s, %s]" % tuple(json.dumps(x, ensure_ascii=False) for x in (q, en, ar)) in js
+
+
+def test_surum_rozeti_tam():
+    src = open(os.path.join(KOK, "masaustu", "fccore", "window.py"), encoding="utf-8").read()
+    assert "split('.')[:2]" not in src

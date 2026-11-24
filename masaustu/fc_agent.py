@@ -27,7 +27,7 @@ from datetime import datetime, timedelta
 try:
     from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
     from PySide6.QtGui import QIcon
-    from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox, QDialog, QFrame, QHBoxLayout,
+    from PySide6.QtWidgets import (QSizePolicy, QAbstractButton, QApplication, QCheckBox, QComboBox, QDialog, QFrame, QHBoxLayout,
                                    QLabel, QMessageBox, QProgressBar, QPushButton, QScrollArea, QSystemTrayIcon,
                                    QToolButton, QVBoxLayout, QWidget)
     QT = True
@@ -757,7 +757,7 @@ class Agent(QObject):
         b.setProperty('fcAgent', True)
         b.setCursor(Qt.PointingHandCursor)
         b.setFixedSize(46, 46)
-        b.setStyleSheet('QToolButton{border-radius:23px;background:#111827;color:#38bdf8;font-size:20px;border:1px solid #334155}'
+        b.setStyleSheet('QToolButton{border-radius:23px;background:#111827;color:#38bdf8;font-size:20px;border:1px solid #334155;padding:0;min-width:46px;max-width:46px}'  # bereket 1.21.1: uygulama QSS'inin padding'i ✦'yi siliyordu
                         'QToolButton:hover{background:#1f2937}')
         b.clicked.connect(self.show)
         self.btns.append(b)
@@ -883,16 +883,22 @@ class Agent(QObject):
             o = self.config()
             box.setLayoutDirection(Qt.RightToLeft if self.lang() == 'ar' else Qt.LeftToRight)
             h = QLabel('✦ ' + self.T('title')); h.setObjectName('h2'); h.setStyleSheet('font-weight:600;font-size:15px'); v.addWidget(h)
-            d = QLabel(self.T('desc')); d.setWordWrap(True); v.addWidget(d)
+            # bereket 1.21.1: düz metinli kaydırmalı QLabel RTL'de ilk satırı kesiyordu → zengin metin (QTextDocument düzeni)
+            d = QLabel('<span>%s</span>' % self.T('desc').replace('<', '&lt;')); d.setTextFormat(Qt.RichText); d.setWordWrap(True)
+            d.setMinimumWidth(40); v.addWidget(d)
 
             def chk(key, label):
-                cb = QCheckBox(label); cb.setChecked(bool(o[key])); cb.setProperty('fcAgent', True)
+                # bereket 1.21.1: uzun metin (özellikle Arapça) kartı genişletip kesilmesin → onay kutusu + kaydırmalı etiket
+                cb = QCheckBox(); cb.setChecked(bool(o[key])); cb.setProperty('fcAgent', True)
+                lb = QLabel('<span>%s</span>' % label.replace('<', '&lt;')); lb.setTextFormat(Qt.RichText); lb.setWordWrap(True); lb.setMinimumWidth(40)
+                lb.mousePressEvent = lambda e, cb=cb: cb.toggle()
 
                 def ch(state, key=key):
                     self.configure(**{key: bool(state)})
                     QTimer.singleShot(0, build)
                 cb.stateChanged.connect(ch)
-                v.addWidget(cb)
+                rw = QHBoxLayout(); rw.setContentsMargins(0, 0, 0, 0); rw.addWidget(cb, 0, Qt.AlignTop); rw.addWidget(lb, 1)
+                wr0 = QWidget(); wr0.setLayout(rw); v.addWidget(wr0)
             chk('on', self.T('on'))
             if o['on']:
                 chk('notify', self.T('notify')); chk('panel', self.T('panel')); chk('ai', self.T('ai'))
@@ -904,7 +910,7 @@ class Agent(QObject):
                     cmb.addItem(self.T('freq.' + f), f)
                 cmb.setCurrentIndex(FREQ.index(o['freq']))
                 cmb.currentIndexChanged.connect(lambda i: self.configure(freq=FREQ[i]))
-                row.addWidget(cmb, 1); wr = QWidget(); wr.setLayout(row); v.addWidget(wr)
+                cmb.setMinimumWidth(120); cmb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed); row.addWidget(cmb, 1); wr = QWidget(); wr.setLayout(row); v.addWidget(wr)
                 v.addWidget(QLabel('<b>%s</b>' % self.T('apps')))
                 apps = self.known_apps()
                 for a in apps:
@@ -918,8 +924,9 @@ class Agent(QObject):
                     cb.stateChanged.connect(ach); v.addWidget(cb)
                 q = QLabel('<small>%s</small>' % self.T('appsHint')); q.setWordWrap(True); v.addWidget(q)
                 sm = self.summary()
-                v.addWidget(QLabel('<small>%s</small>' % self.T('status', t=self.hm(sm['tot']['w']), n=len(self.d['notes']),
-                                                                a=self.ai_calls_today(), m=self.ai_per_day)))
+                st = QLabel('<small>%s</small>' % self.T('status', t=self.hm(sm['tot']['w']), n=len(self.d['notes']),
+                                                         a=self.ai_calls_today(), m=self.ai_per_day))
+                st.setWordWrap(True); v.addWidget(st)
                 row = QHBoxLayout()
                 b1 = QPushButton('⚡ ' + self.T('analyze')); b1.setProperty('fcAgent', True)
 
@@ -936,8 +943,12 @@ class Agent(QObject):
                     if QMessageBox.question(box, self.T('clear'), self.T('clearQ')) == QMessageBox.Yes:
                         self.clear(); build()
                 b3.clicked.connect(cl)
-                row.addWidget(b1); row.addWidget(b2); row.addWidget(b3); row.addStretch(1)
+                # bereket 1.21.1: üç düğme dar kartta (Arapça) tek satıra sığmıyor, kartı genişletip kesiyordu → alt alta
+                row.addWidget(b1); row.addStretch(1)
                 wr = QWidget(); wr.setLayout(row); v.addWidget(wr)
+                for bx in (b2, b3):
+                    row2 = QHBoxLayout(); row2.setContentsMargins(row.contentsMargins()); row2.addWidget(bx); row2.addStretch(1)
+                    wr2 = QWidget(); wr2.setLayout(row2); v.addWidget(wr2)
             q = QLabel('<small>%s</small>' % self.T('privacy')); q.setWordWrap(True); v.addWidget(q)
         build()
         return box
