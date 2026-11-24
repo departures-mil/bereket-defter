@@ -1,9 +1,9 @@
 {
- "surum": "1.18",
- "kod": "1_18",
- "dosya": "masaustu-1_18.zip",
- "sha256": "9f5d7fd8a86c2b4600cdff121a6cdf79b98c689975bd8d2ce29dab16fec48b86",
+ "surum": "1.19",
+ "kod": "1_19",
+ "dosya": "masaustu-1_19.zip",
+ "sha256": "13a1927638e9926d7bef94e2621c75f46c611fe9eb0515b7044ffa306e4bcf82",
  "boyut": 191462,
- "notlar": "Sağ üstte Küçült, Yarım/Tam ekran ve Kapat düğmeleri",
- "tarih": "2026-11-22 16:18"
+ "notlar": "Sürüm 1.19: telefon sürümüyle eşit tutuldu (telefona Asistan Agent eklendi).",
+ "tarih": "2026-11-24 12:01"
 }
