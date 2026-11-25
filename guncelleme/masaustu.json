@@ -1,9 +1,9 @@
 {
- "surum": "1.21.3",
- "kod": "1_21_3",
- "dosya": "masaustu-1_21_3.zip",
- "sha256": "62034feea4cde1baffc0311c1458888dbc3693bf8fa5dff34b8d5007732c7564",
- "boyut": 212155,
- "notlar": "Bereket Defter 1.21.3 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nEski sürümlerden bu sürüme geçiş bir kez tam kurulumla yapılır (eski güncelleyicideki siyah pencere sorunu yaşanmaz). Sonraki güncellemeler yine arka planda, kendiliğinden. Kayıtlar korunur.",
- "tarih": "2026-11-25 00:32"
+ "surum": "1.22.0",
+ "kod": "1_22_0",
+ "dosya": "masaustu-1_22_0.zip",
+ "sha256": "92dd56f635dc5232d3508d610762ae6b12f5eed49a1d8c3954737dd6c1e3d3f3",
+ "boyut": 212156,
+ "notlar": "Bereket Defter 1.22.0 yeni kurulum programıyla geliyor. Güncellemeden sonra açılan pencerede \"İndir ve kur\"a basın; kayıtlarınız olduğu gibi kalır.\n\nGüvenlik: PIN kilidi (açılışta ve boşta kalınca), tutarları gizle düğmesi (👁), her gün otomatik yedek ve önizlemeli «eksikleri geri getir» (hiçbir kaydı silmez, üzerine yazmaz)\nYeni Raporlar sayfası: genel durum ve dolar karşılığı (elle kur), yaşlandırma, en büyük bakiyeler, aylık hareket grafiği, vadesi geçenler; CSV dışa / içe aktarma\nKişiye mesaj / mutabakat: bakiye bildirimi, kibar ödeme hatırlatması, hesap kapandı (Türkçe, İngilizce, Arapça; WhatsApp · Telegram · kopyala)\nTaksit planı (her taksit için hatırlatıcı) ve Bakara 282'ye uygun borç senedi (kâtip ve iki şahit; PDF / yazdır)\nHızlı kayıt: «Ahmet'e 500 TL verdim» yazın, kayıt hazırlanır (internet gerekmez)\nKişilere etiket (aile, iş…) ve etiket süzgeci; vadesi geçenler ⏰ ile işaretli; silinen kayıt için «Geri al»; klavye kısayolları (masaüstü)",
+ "tarih": "2026-11-25 23:54"
 }
