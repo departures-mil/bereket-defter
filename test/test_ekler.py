@@ -120,8 +120,8 @@ def test_hizli_kayit(metin, beklenen):
 
 def test_mesaj_senet_taksit():
     import ekler_cekirdek as E
-    m = E.mesaj_metni("bakiye", "tr", "Ali", {"USD": 150, "TRY": -50, "SYP": 0}, "Deniz", "25.11.2026")
-    assert "Bana olan borcunuz: 150,00 $" in m and "Size olan borcum: 50,00 ₺" in m and "Onaylıyorum" in m and m.endswith("Deniz")
+    m = E.mesaj_metni("bakiye", "tr", "Ali", {"USD": 150, "TRY": -50, "SYP": 0}, "Ahmet", "25.11.2026")
+    assert "Bana olan borcunuz: 150,00 $" in m and "Size olan borcum: 50,00 ₺" in m and "Onaylıyorum" in m and m.endswith("Ahmet")
     assert "bekleme" in E.mesaj_metni("hatirlat", "tr", "Ali", {"USD": 10})
     assert "Confirmed" in E.mesaj_metni("hatirlat", "en", "Ali", {"USD": -10})       # borç yoksa hatırlatma yerine bakiye
     assert "أُغلق" in E.mesaj_metni("kapandi", "ar", "علي", {})
