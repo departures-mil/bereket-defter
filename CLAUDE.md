@@ -4,8 +4,8 @@ PySide6 masaüstü (`masaustu/`, kurulumlu) + Android apktool/smali kabuğu (`an
 Ortak çekirdek (v1.21.0'dan beri): masaüstü `masaustu/fccore` (Python/Qt), telefon `mobil/cekirdek` (web); hangi commit: `cekirdek/VERSION`.
 Çekirdek kopyasını burada değiştirme (departures-mil/ortak-cekirdek'ten yeniden kopyala); yerel ek `android/java/.../FcGuncelle.java`.
 
-## Kurallar (Milen)
-- Milen "BAŞLA" demeden yeni iş başlatma. Yazışma dili Türkçe. Arayüz tr/en/ar (Arapça RTL).
+## Kurallar (kullanıcı)
+- Kullanıcı "BAŞLA" demeden yeni iş başlatma. Yazışma dili Türkçe. Arayüz tr/en/ar (Arapça RTL).
 - Sürüm semver X.Y.Z, etiket `vX.Y.Z`. Önce `masaustu/notlar.py` en üstüne not, sonra `python3 araclar/surum_yaz.py X.Y.Z`.
 - Güncelleme yalnız GitHub Releases + latest.json + FCD1 yama (CI: `.github/workflows/release.yml` → ortak reusable-release).
   Yayın main'de workflow_dispatch: `gh api -X POST repos/departures-mil/bereket-defter/actions/workflows/release.yml/dispatches -f ref=main`.

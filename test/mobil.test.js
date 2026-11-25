@@ -83,14 +83,14 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   await t('v1.22: mesaj, senet, taksit, PIN, CSV', async () => {
     const r = await p.evaluate(() => {
       const E = Ekler._;
-      const m = E.mesajMetni('bakiye', 'tr', 'Ali', { USD: 150, TRY: -50 }, 'Milen', '25.11.2026');
+      const m = E.mesajMetni('bakiye', 'tr', 'Ali', { USD: 150, TRY: -50 }, 'Ahmet', '25.11.2026');
       const k = E.pinKaydi('4321');
       const pid = Store.addPerson({ name: 'CSV Ali' });
       Store.addTx({ person: pid, ts: '2026-11-01 10:00', direction: 'VERDIM', currency: 'USD', amount: 1234.5, description: 'a;b' });
       const csv = E.csvDisa();
       const coz = E.csvCozumle(csv);
       const coz2 = E.csvCozumle('Date,Person,Type,Currency,Amount\n2026-11-03,Yeni Can,Received,TRY,"1,500.00"\nbozuk,x,gave,USD,1');
-      return { m: m.includes('Bana olan borcunuz: 150,00 $') && m.includes('Size olan borcum: 50,00 ₺') && m.endsWith('Milen'),
+      return { m: m.includes('Bana olan borcunuz: 150,00 $') && m.includes('Size olan borcum: 50,00 ₺') && m.endsWith('Ahmet'),
         senet: E.senetHtml({ borclu: 'A<b>', tutar: 10, cur: 'USD' }, 'ar').includes('dir="rtl"') && E.senetHtml({ borclu: 'A<b>' }, 'tr').includes('A&lt;b&gt;'),
         taksit: E.taksitler(1000, 3, new Date(2026, 0, 31, 10, 0), 'ay'),
         pin: E.pinDogru(k, '4321') && !E.pinDogru(k, '1111'), sha: E.sha256('abc'),

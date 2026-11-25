@@ -7,7 +7,7 @@ CI (.github/workflows/release.yml) aynı aracı secret'larla çalıştırır ve 
 - android/ = yayındaki APK'nın apktool ağacı (smali). Java kaynağı yoktur; değişiklikler smali üzerinde yapılır.
 - android/assets/www her derlemede mobil/ klasöründen yenilenir (telefon arayüzü).
 - Sürüm: android/apktool.yml versionCode / versionName (nativeCode = versionCode; mobil.json minNative ile eşleşir).
-- İmza anahtarı (bereket.jks, alias bereket) depoda DEĞİL: C:\\Claude Programlarım\\_Anahtarlar\\Bereket
+- İmza anahtarı (bereket.jks, alias bereket) depoda DEĞİL: geliştiricinin bilgisayarındaki anahtar klasörü
 Araçlar (apktool, apksig) ilk çalıştırmada ~/.cache/og-apk/ altına indirilir.
 """
 import os, shutil, struct, subprocess, sys, tempfile, urllib.request, zipfile
