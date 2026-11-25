@@ -73,8 +73,16 @@ jobs:
           New-Item -ItemType Directory -Force release | Out-Null
           $env:PYTHONPATH = "masaustu"
           python -m fccore.fcpack dist/BereketDefter release/BereketDefter-win-app.zip
-          $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
-          if (-not (Test-Path $nsis)) { choco install nsis -y --no-progress | Out-Null }
+          # Runner görüntüsünde NSIS yoksa kur; kurulum yeri (x86 / x64) ya da PATH değişebilir
+          $adaylar = { @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe", "$env:ChocolateyInstall\bin\makensis.exe") }
+          $nsis = (& $adaylar) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $nsis) {
+            choco install nsis -y --no-progress
+            $nsis = (& $adaylar) | Where-Object { Test-Path $_ } | Select-Object -First 1
+            if (-not $nsis) { $nsis = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source }
+          }
+          if (-not $nsis) { Write-Error "NSIS (makensis.exe) bulunamadı"; exit 1 }
+          Write-Host "NSIS: $nsis"
           & $nsis /V2 "/DVERSION=$v" "/DSRC=$pwd\dist\BereketDefter" "/DOUT=$pwd\release\BereketDefter-Setup-$v.exe" paket\kurulum.nsi
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Get-ChildItem release | Format-Table Name, Length
