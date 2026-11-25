@@ -375,7 +375,7 @@ const App = {
           "aria-label": t(CH_NAMES[ch]) + " — " + (on ? t("açık") : t("kapalı")),
           onclick: () => this.channelClick(p.id, ch) }, channelIcon(ch, on, 34));
       }));
-      const info = [p.phone, p.phone2, p.email, p.address, p.note].filter(Boolean).map(x => /^[+\d\s()-]+$/.test(x) ? ltr(x) : x);
+      const info = [(p.tags || "").trim() ? "🏷 " + p.tags : "", p.phone, p.phone2, p.email, p.address, p.note].filter(Boolean).map(x => /^[+\d\s()-]+$/.test(x) ? ltr(x) : x);
       const nxt = Store.reminders({ pid: p.id })[0];
       const infoEl = h("div", { class: "pinfo muted" }, info.map((x, i) => [i ? " • " : "", x]));
       this.pheadEl.append(h("div", { class: "phead-row" }, back,
@@ -386,6 +386,9 @@ const App = {
       this.pheadEl.append(h("div", { class: "pactions" },
         h("button", { class: "btn small light2", type: "button", onclick: () => Forms.person(Store.person(p.id)) }, "✎ " + t("Düzenle")),
         h("button", { class: "btn small light2", type: "button", onclick: () => Forms.reminders({ pid: p.id }) }, t("🔔 Hatırlatıcılar")),
+        h("button", { class: "btn small light2", type: "button", onclick: () => Ekler.mesaj(p.id) }, t("💬 Mesaj / Mutabakat")),
+        h("button", { class: "btn small light2", type: "button", onclick: () => Ekler.taksit(p.id) }, t("📅 Taksit Planı")),
+        h("button", { class: "btn small light2", type: "button", onclick: () => Ekler.senet(p.id) }, t("📜 Borç Senedi")),
         h("button", { class: "btn small danger", type: "button", onclick: () => this.deletePerson(p.id) }, t("Sil"))));
       bal = Store.balances(p.id);
     }
@@ -445,7 +448,7 @@ const App = {
     if (!p) return;
     const n = Store.txCount(pid);
     let msg = tf("'{}' silinsin mi?", p.name);
-    if (n) msg += "\n\n" + tf("DİKKAT: Bu kişiye ait {} kayıt ve belgeleri de kalıcı olarak silinecek!", n);
+    if (n) msg += "\n\n" + tf("Bu kişiye ait {} kayıt ve belgeleri de arşive taşınır; Ayarlar → Arşiv'den geri alabilirsiniz.", n);
     if (await Dlg.confirm(msg, t("Kişiyi sil"), { danger: true, yes: t("Sil") })) {
       Store.deletePerson(pid);
       if (this.sel === pid) { this.sel = this.isWide() ? "ALL" : null; this.view = "list"; this.applyView(); }

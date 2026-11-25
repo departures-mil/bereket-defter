@@ -9,7 +9,7 @@ datas = [(os.path.join(SRC, 'assets'), 'assets')]
 datas += [(os.path.join(SRC, 'fccore', 'fonts'), os.path.join('fccore', 'fonts'))]
 
 a = Analysis([os.path.join(SRC, 'main.py')], pathex=[SRC], binaries=[], datas=datas,
-             hiddenimports=['PySide6.QtSvg', 'PySide6.QtPrintSupport', 'fc_agent', 'lan', 'notlar', 'surum'],
+             hiddenimports=['PySide6.QtSvg', 'PySide6.QtPrintSupport', 'fc_agent', 'lan', 'notlar', 'surum', 'ekler', 'ekler_cekirdek', 'ekler_ceviri'],
              excludes=['tkinter', 'PySide6.QtWebEngineCore', 'PySide6.QtWebEngineWidgets', 'PySide6.QtQml', 'PySide6.QtQuick',
                        'PySide6.Qt3DCore', 'PySide6.QtMultimedia', 'PySide6.QtCharts', 'PySide6.QtDataVisualization'],
              noarchive=False)

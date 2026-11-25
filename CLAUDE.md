@@ -16,3 +16,6 @@ Ortak çekirdek (v1.21.0'dan beri): masaüstü `masaustu/fccore` (Python/Qt), te
 - ESKİ KANAL: ≤1.20 kurulumlar raw `guncelleme/masaustu.json` + `mobil.json` okur (yalnız SHA-256, imza yok). Release'ten SONRA
   `python3 araclar/kopru.py` → masaüstü "Yeni kurulum gerekli" paketi + telefon APK (minNative) → commit + push main.
 - Kullanıcıya APK/exe dosyası gönderme; güncelleme uygulamanın içinden insin.
+- v1.22 ekleri: masaüstü `ekler*.py`, telefon `mobil/js/ekler.js`. Yeni çeviri eklerken `masaustu/ekler_ceviri.py`'ye yazıp
+  `python3 araclar/ceviri_mobil.py` çalıştırın (eksik çeviri varsa hata verir). PIN / kur / otomatik yedek ayarları cihaza özeldir
+  (masaüstü `guvenlik.json`, telefon localStorage `bereket_guvenlik`), eşitlenmez. Kişi `tags` alanı eşitlenir (ESITLEME: persons.tags).

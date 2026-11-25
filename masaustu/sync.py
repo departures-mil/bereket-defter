@@ -40,7 +40,7 @@ BLOB_BATCH = 8             # bir :commit isteğinde en fazla blob yazımı
 ROW_BATCH = 200            # bir :commit isteğinde en fazla satır yazımı
 PAGE = 300                 # runQuery sayfa boyu
 EPOCH = "1970-01-01T00:00:00Z"
-PERSON_STR = ("name", "phone", "note", "phone2", "wa_phone", "tg_user", "sg_phone", "email", "address")
+PERSON_STR = ("name", "phone", "note", "phone2", "wa_phone", "tg_user", "sg_phone", "email", "address", "tags")
 PERSON_BOOL = ("ch_wa", "ch_tg", "ch_sg", "ch_call")
 RULES = """rules_version = '2';
 service cloud.firestore {

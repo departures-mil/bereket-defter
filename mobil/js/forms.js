@@ -31,7 +31,7 @@ function btn(label, cls, fn, attrs) { return h("button", Object.assign({ type: "
 
 const PERSON_EXTRA = [["phone2", "2. Telefon", ""], ["wa_phone", "WhatsApp no", "Boşsa Telefon kullanılır"],
   ["tg_user", "Telegram kullanıcı adı / no", "@kullanici veya +90…"], ["sg_phone", "Signal no", "Boşsa Telefon kullanılır"],
-  ["email", "E-posta", ""], ["address", "Adres", ""]];
+  ["email", "E-posta", ""], ["address", "Adres", ""], ["tags", "Etiketler", "ör. aile, iş, komşu (virgülle ayırın)"]];
 const BOOK_COLS = [["name", "Ad Soyad"], ["phone", "Telefon"], ["phone2", "2. Telefon"], ["wa_phone", "WhatsApp no"],
   ["tg_user", "Telegram kullanıcı adı / no"], ["sg_phone", "Signal no"], ["email", "E-posta"], ["address", "Adres"], ["note", "Not"]];
 const PHONE_KEYS = new Set(["phone", "phone2", "wa_phone", "sg_phone"]);
@@ -554,14 +554,20 @@ const Forms = {
     const items = [
       item("📒", t("Kişi Defteri"), () => Forms.book()),
       item("📄", t("Tüm Kayıtlar Dökümü"), () => Forms.statement(null)),
+      item("✦", t("Hızlı kayıt"), () => Ekler.hizliKayit("")),
+      item("📊", t("Raporlar"), () => Ekler.raporlar()),
+      item("📅", t("Taksit / ödeme planı"), () => Ekler.taksit(App.pid())),
+      item("📜", t("Borç senedi"), () => Ekler.senet(App.pid())),
       item("🔔", t("🔔 Hatırlatıcılar").replace("🔔 ", ""), () => Forms.reminders({})),
       item("☁", t("☁ Eşitleme").replace("☁ ", ""), () => Forms.sync()),
       item("💾", t("Yedek Al"), () => Backup.export()),
       item("♻", t("Yedekten Geri Yükle"), () => Backup.import()),
+      item("🗂", t("Yedekler ve geri getirme"), () => Ekler.yedekler()),
       item("⚙", t("⚙ Ayarlar").replace("⚙ ", ""), () => Forms.settings()),
       item("⬆", t("Güncelleme"), () => Kabuk.guncelle()),
       item("ℹ", t("Hakkında"), () => Forms.about()),
     ];
+    if (Ekler.A.pin) items.push(item("🔒", t("Kilitle"), () => Ekler.kilitle()));
     if (bridgeHas("exitApp")) items.push(item("⏻", t("Çıkış"), async () => {
       if (await Dlg.confirm(t("Programdan çıkmak istiyor musunuz?"), t("Çıkış"))) bridge().exitApp();
     }));

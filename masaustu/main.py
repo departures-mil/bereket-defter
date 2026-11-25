@@ -1,6 +1,7 @@
 """Bereket Alacak-Verecek Defteri — ana program."""
 import html
 import os
+import re
 import queue
 import random
 import sys
@@ -30,6 +31,7 @@ except Exception:  # pragma: no cover
 AJAN = None
 from db import CHANNELS, CONTACT_FIELDS, CURRENCIES, CURRENCY_NAMES, CURRENCY_SYMBOLS, DB, parse_old
 from sync import RULES, SyncEngine
+import ekler   # v1.22: güvenlik, raporlar, taksit, mesaj / mutabakat, senet, hızlı kayıt, CSV
 
 APP_TITLE = "Bereket Alacak-Verecek Defteri"
 # Sürüm (semver X.Y.Z; etiket vX.Y.Z). Tek kaynak: masaustu/surum.py (CI, kurulum ve telefon aynı sürümü okur)
@@ -105,6 +107,8 @@ def fmt(x):
 
 
 def money(x, cur):
+    if ekler.GIZLE[0]:   # v1.22: "tutarları gizle" (döküm / senet / mesaj her zaman açık yazar)
+        return f"{ekler.MASKE} {CURRENCY_SYMBOLS[cur]}"
     return f"{fmt(x)} {CURRENCY_SYMBOLS[cur]}"
 
 
@@ -137,6 +141,7 @@ QListWidget#plist::item:selected {{ background: {active-1}; color: {text}; }}
 QFrame#tile {{ background: {panel-hover}; border: 1px solid {border}; border-radius: 14px; }}
 QLabel#tileTitle {{ font-weight: 700; color: {accent}; }}
 QLabel#hint {{ background: {warn-soft}; color: {warn-text}; padding: 8px; border-radius: 8px; }}
+QAbstractSpinBox {{ min-height: 34px; }}
 """.format(**T)
 
 
@@ -227,6 +232,15 @@ def channel_pixmap(ch, size, active=True):
         pm.setDevicePixelRatio(2)
         _ch_cache[key] = pm
     return _ch_cache[key]
+
+
+def kisi_etiketleri(p):
+    """v1.22: kişinin etiketleri (virgül / noktalı virgülle ayrılmış)."""
+    try:
+        raw = p["tags"] or ""
+    except (IndexError, KeyError):
+        raw = ""
+    return [t.strip() for t in re.split(r"[,;،]", raw) if t.strip()]
 
 
 def active_channels(p):
@@ -384,7 +398,8 @@ class PersonDialog(QDialog):
         for k, label, ph in (("phone2", "2. Telefon", ""), ("wa_phone", "WhatsApp no", "Boşsa Telefon kullanılır"),
                              ("tg_user", "Telegram kullanıcı adı / no", "@kullanici veya +90…"),
                              ("sg_phone", "Signal no", "Boşsa Telefon kullanılır"),
-                             ("email", "E-posta", ""), ("address", "Adres", "")):
+                             ("email", "E-posta", ""), ("address", "Adres", ""),
+                             ("tags", "Etiketler", "ör. aile, iş, komşu (virgülle ayırın)")):
             e = QLineEdit(val(k))
             if ph:
                 e.setPlaceholderText(_(ph))
@@ -943,6 +958,10 @@ class StatementDialog(QDialog):
         self.render()
 
     def build_html(self):
+        with ekler.gizlemeden():
+            return self._build_html()
+
+    def _build_html(self):
         start = self.d1.dateTime().toString("yyyy-MM-dd HH:mm")
         end = self.d2.dateTime().toString("yyyy-MM-dd HH:mm") + ":59"
         cur_filter = self.cur.currentData()
@@ -1616,6 +1635,11 @@ class MainWindow(QWidget):
         self.clock.setObjectName("clock")
         self.clock.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         head.addWidget(self.clock)
+        self.goz = QPushButton("🙈" if ekler.GIZLE[0] else "👁")
+        self.goz.setObjectName("light")
+        self.goz.setToolTip(_("Tutarları gizle / göster (Ctrl+H)"))
+        self.goz.clicked.connect(lambda: self.gizle_degistir(not ekler.GIZLE[0]))
+        head.addWidget(self.goz)
         self.rem_btn = QPushButton()
         self.rem_btn.setObjectName("light")
         self.rem_btn.clicked.connect(lambda: self.open_reminders())
@@ -1627,6 +1651,17 @@ class MainWindow(QWidget):
             b.clicked.connect(fn)
             head.addWidget(b)
         root.addLayout(head)
+        hrow = QHBoxLayout()   # v1.22: hızlı kayıt (internetsiz ayrıştırıcı)
+        self.hizli = QLineEdit()
+        self.hizli.setPlaceholderText(_("✦ Hızlı kayıt: ör. Ahmet'e 500 TL verdim"))
+        self.hizli.setToolTip(_("Cümleyi yazıp Enter'a basın; kişi, tutar, para birimi ve işlem kendiliğinden doldurulur (Ctrl+K)."))
+        self.hizli.returnPressed.connect(lambda: self.hizli_kayit(self.hizli.text()))
+        hrow.addWidget(self.hizli, 1)
+        hb = QPushButton(_("✦ Hızlı kayıt"))
+        hb.setObjectName("primary")
+        hb.clicked.connect(lambda: self.hizli_kayit(self.hizli.text()))
+        hrow.addWidget(hb)
+        root.addLayout(hrow)
         self.banner = QLabel()
         self.banner.setWordWrap(True)
         self.banner.setObjectName("banner")
@@ -1661,6 +1696,10 @@ class MainWindow(QWidget):
         self.search.setPlaceholderText(_("🔍 Kişi ara…"))
         self.search.textChanged.connect(self.load_persons)
         ll.addWidget(self.search)
+        self.f_tag = QComboBox()   # v1.22: etiket / grup süzgeci
+        self.f_tag.currentIndexChanged.connect(self.load_persons)
+        ll.addWidget(self.f_tag)
+        self.fill_tags()
         self.plist = QListWidget()
         self.plist.setObjectName("plist")
         self.plist.setItemDelegate(PersonDelegate(self.plist))
@@ -1734,6 +1773,13 @@ class MainWindow(QWidget):
         hh.setSectionResizeMode(6, QHeaderView.Stretch)
         self.table.doubleClicked.connect(lambda *_a: self.edit_tx())
         rl.addWidget(self.table, 1)
+        self.empty = QLabel()   # v1.22: boş durum yönlendirmesi
+        self.empty.setObjectName("muted")
+        self.empty.setAlignment(Qt.AlignCenter)
+        self.empty.setWordWrap(True)
+        self.empty.setStyleSheet("font-size:16px;padding:30px;")
+        self.empty.hide()
+        rl.addWidget(self.empty, 1)
         tb = QGridLayout()
         tb.setHorizontalSpacing(8)
         tb.setVerticalSpacing(6)
@@ -1744,20 +1790,36 @@ class MainWindow(QWidget):
                 (_("📎 Belgeler"), self.show_photos, None),
                 (_("Değişiklik Geçmişi"), self.show_history, None),
                 (_("🔔 Hatırlatıcı Ekle"), self.add_reminder, None),
-                (_("📄 Döküm Al"), self.statement, "gold"))
+                (_("📄 Döküm Al"), self.statement, "gold"),
+                (_("💬 Mesaj / Mutabakat"), self.mesaj, None),
+                (_("📅 Taksit Planı"), self.taksit, None),
+                (_("📜 Borç Senedi"), self.senet, None))
+        self.kisi_btn = []
         for i, (text, fn, name) in enumerate(acts):
             b = QPushButton(text)
             if name:
                 b.setObjectName(name)
             b.clicked.connect(fn)
-            tb.addWidget(b, i // 4, i % 4)
+            tb.addWidget(b, i // 6, i % 6)
+            if fn in (self.mesaj, self.taksit):
+                self.kisi_btn.append(b)
         rl.addLayout(tb)
+        self.geri_al = ekler.GeriAlCubugu(self, self.db, self.load_persons)
+        rl.addWidget(self.geri_al)
         body.addWidget(right, 1)
         root.addLayout(body, 1)
 
-        for seq, fn in ((QKeySequence("Ctrl+N"), lambda: self.add_tx("VERDIM")),):
+        g = getattr(self.db, "guvenlik", None)
+        for seq, fn in (("Ctrl+N", lambda: self.add_tx("VERDIM")), ("Ctrl+Shift+N", lambda: self.add_tx("ALDIM")),
+                        ("Ctrl+K", lambda: self.hizli_kayit("")), ("Ctrl+F", lambda: (self.search.setFocus(), self.search.selectAll())),
+                        ("Ctrl+P", self.statement), ("Ctrl+M", self.mesaj),
+                        ("Ctrl+R", lambda: self.shell is not None and self.shell.show_page("rapor")),
+                        ("Ctrl+H", lambda: self.gizle_degistir(not ekler.GIZLE[0])),
+                        ("Ctrl+L", lambda: g is not None and g.kilitle()),
+                        ("F5", self.sync_button_clicked), ("Delete", self.delete_tx)):
             a = QAction(self)
-            a.setShortcut(seq)
+            a.setShortcut(QKeySequence(seq))
+            a.setShortcutContext(Qt.WindowShortcut)
             a.triggered.connect(fn)
             self.addAction(a)
 
@@ -1920,14 +1982,21 @@ class MainWindow(QWidget):
         it = QListWidgetItem(_("★  Tüm kişiler"))
         it.setData(Qt.UserRole, self.ALL)
         self.plist.addItem(it)
+        tag = self.f_tag.currentData() if hasattr(self, "f_tag") else None
+        late = ekler.E.gecikmis_kisiler(self.db)
         for p in self.db.persons(self.search.text()):
+            if tag and tag not in kisi_etiketleri(p):
+                continue
             bal = self.db.balances(p["id"])
             parts = []
             for c in CURRENCIES:
                 b = bal[c][2]
                 if abs(b) >= 0.005:
                     parts.append(("+" if b > 0 else "") + money(b, c))
-            it = QListWidgetItem(p["name"] + ("\n" + "  ".join(parts) if parts else "\n" + _("Hesap kapalı")))
+            it = QListWidgetItem(("⏰ " if p["id"] in late else "") + p["name"] +
+                                 ("\n" + "  ".join(parts) if parts else "\n" + _("Hesap kapalı")))
+            if p["id"] in late:
+                it.setToolTip(_("Vadesi geçmiş hatırlatıcı var"))
             it.setData(Qt.UserRole, p["id"])
             it.setData(Qt.UserRole + 2, active_channels(p))
             self.plist.addItem(it)
@@ -1940,11 +2009,69 @@ class MainWindow(QWidget):
         self.load_person()
         self.refresh_totals()
 
+    # --- v1.22 ekleri
+    def fill_tags(self):
+        keep = self.f_tag.currentData()
+        self.f_tag.blockSignals(True)
+        self.f_tag.clear()
+        self.f_tag.addItem(_("🏷 Bütün etiketler"), None)
+        tags = sorted({t for p in self.db.persons() for t in kisi_etiketleri(p)}, key=str.lower)
+        for t in tags:
+            self.f_tag.addItem("🏷 " + t, t)
+        self.f_tag.setCurrentIndex(max(self.f_tag.findData(keep), 0))
+        self.f_tag.setVisible(bool(tags))
+        self.f_tag.blockSignals(False)
+
+    def gizle_degistir(self, on):
+        ekler.GIZLE[0] = bool(on)
+        g = getattr(self.db, "guvenlik", None)
+        if g is not None:
+            g.a["gizle"] = bool(on)
+            g.kaydet()
+        self.goz.setText("🙈" if on else "👁")
+        self.load_persons()
+
+    def hizli_kayit(self, text):
+        d = ekler.HizliKayitDialog(self, self.db, text)
+        if d.exec():
+            self.hizli.clear()
+            self.fill_tags()
+            self.load_persons()
+            for i in range(self.plist.count()):
+                if self.plist.item(i).data(Qt.UserRole) == d.pid:
+                    self.plist.setCurrentRow(i)
+
+    def _kisi_sec(self):
+        pid = self.current_pid()
+        if pid in (None, self.ALL):
+            QMessageBox.information(self, _("Seçim"), _("Önce soldaki listeden bir kişi seçin."))
+            return None
+        return pid
+
+    def mesaj(self):
+        pid = self._kisi_sec()
+        if pid is not None:
+            ekler.MesajDialog(self, self.db, pid).exec()
+
+    def taksit(self):
+        if not self.db.persons():
+            QMessageBox.information(self, _("Kişi yok"), _("Önce bir kişi ekleyin."))
+            return
+        pid = self.current_pid()
+        if ekler.TaksitDialog(self, self.db, None if pid in (None, self.ALL) else pid).exec():
+            self.load_persons()
+            self.check_reminders(notify=False)
+
+    def senet(self):
+        pid = self.current_pid()
+        ekler.SenetDialog(self, self.db, None if pid in (None, self.ALL) else pid).exec()
+
     def add_person(self):
         d = PersonDialog(self)
         if d.exec():
             pid = self.db.add_person(*d.values())
             self.search.clear()
+            self.fill_tags()
             self.load_persons()
             for i in range(self.plist.count()):
                 if self.plist.item(i).data(Qt.UserRole) == pid:
@@ -1963,6 +2090,7 @@ class MainWindow(QWidget):
         d = PersonDialog(self, self.db.person(pid))
         if d.exec():
             self.db.update_person(pid, *d.values())
+            self.fill_tags()
             self.load_persons()
 
     def delete_person(self):
@@ -1973,10 +2101,12 @@ class MainWindow(QWidget):
         n = self.db.tx_count(pid)
         msg = _("'{}' silinsin mi?").format(p['name'])
         if n:
-            msg += "\n\n" + _("DİKKAT: Bu kişiye ait {} kayıt ve belgeleri de kalıcı olarak silinecek!").format(n)
+            msg += "\n\n" + _("Bu kişiye ait {} kayıt ve belgeleri de arşive taşınır; Ayarlar → Arşiv'den geri alabilirsiniz.").format(n)
         if QMessageBox.warning(self, _("Kişiyi sil"), msg, QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             self.db.delete_person(pid)
+            self.fill_tags()
             self.load_persons()
+            self.geri_al.goster(_("“{}” silindi").format(p["name"]))
 
     def load_person(self):
         pid = self.current_pid()
@@ -1990,6 +2120,8 @@ class MainWindow(QWidget):
             self.pname.setText(p["name"])
             self.chbar.set_person(pid)
             info = [x for x in (p["phone"], p["phone2"], p["email"], p["note"]) if x]
+            if kisi_etiketleri(p):
+                info.insert(0, "🏷 " + ", ".join(kisi_etiketleri(p)))
             nxt = self.db.reminders(pid)
             if nxt:
                 info.append("🔔 " + _("Sıradaki hatırlatıcı") + ": " + reminder_text(nxt[0]).split(" — ")[0] + " — " +
@@ -2035,6 +2167,18 @@ class MainWindow(QWidget):
                     it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 self.table.setItem(i, j, it)
         self.table.setColumnHidden(1, pid not in (None, self.ALL))
+        filtre = bool(self.f_text.text() or self.f_cur.currentData() or self.f_nodoc.isChecked())
+        if rows:
+            self.empty.hide()
+        elif not self.db.persons():
+            self.empty.setText(_("Hoş geldiniz! Başlamak için soldan “+ Kişi Ekle”ye basın ya da üstteki hızlı kayıt kutusuna "
+                                 "“Ahmet'e 500 TL verdim” gibi yazıp Enter'a basın."))
+        elif filtre:
+            self.empty.setText(_("Süzgece uyan kayıt yok. Arama kutusunu ya da para birimi seçimini temizleyin."))
+        else:
+            self.empty.setText(_("Bu sayfada henüz kayıt yok. “+ Verdim (Çıktı)” ya da “+ Aldım (Girdi)” ile ilk kaydı ekleyin."))
+        self.empty.setVisible(not rows)
+        self.table.setVisible(bool(rows))
 
     def selected_tid(self):
         r = self.table.currentRow()
@@ -2131,6 +2275,7 @@ class MainWindow(QWidget):
                                                                              money(t['amount'], t['currency'])), QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             self.db.delete_tx(tid)
             self.after_change()
+            self.geri_al.goster(_("Kayıt silindi"))
 
     def show_photos(self):
         tid = self.selected_tid()
@@ -2242,7 +2387,8 @@ KLASIK = {   # 1.20'ye kadarki görünüm: yeşil başlık, açık kartlar (her 
 }
 
 fccore.i18n.add({
-    "tr": {"bd.nav": "Defter", "bd.nav.book": "Alacak-Verecek", "bd.nav.settings": "Ayarlar", "bd.tag": "Alacak-Verecek Defteri",
+    "tr": {"bd.nav": "Defter", "bd.nav.book": "Alacak-Verecek", "bd.nav.settings": "Ayarlar", "bd.nav.rapor": "Raporlar",
+           "bd.rapor.sub": "Özet, yaşlandırma, en büyük bakiyeler, aylık hareket, gecikenler, CSV", "bd.tag": "Alacak-Verecek Defteri",
            "bd.sub": "Kişiler, kayıtlar, belgeler ve hatırlatıcılar", "bd.set.sub": "Görünüm, eşitleme, arşiv ve iletişim",
            "bd.sync": "Eşitleme (telefon ⇄ bilgisayar)",
            "bd.sync.desc": "Kayıtlar kendi Firebase hesabınızla telefon ve bilgisayarlar arasında eşitlenir; aynı ağdaysanız Wi‑Fi ile internetsiz de eşitlenir. Hiçbir kayıt silinmez ya da körü körüne üzerine yazılmaz.",
@@ -2257,7 +2403,8 @@ fccore.i18n.add({
            "bd.yedek": "Yedek", "bd.yedek.desc": "Kayıtların ve belgelerin tam yedeğini ZIP dosyası olarak alın. Yedeği USB bellek gibi ayrı bir yerde saklayın.",
            "bd.yedek.al": "Yedek al", "bd.cikis": "Programdan çıkmak istiyor musunuz?", "bd.cikis.t": "Çıkış",
            "bd.ob.fb": "Firebase bilgileri kaydedildi. Eşitleme penceresinde e-posta ve şifrenizle giriş yapın (ilk kez ise \"Hesap oluştur\")."},
-    "en": {"bd.nav": "Ledger", "bd.nav.book": "Receivables & payables", "bd.nav.settings": "Settings", "bd.tag": "Receivables & Payables Ledger",
+    "en": {"bd.nav": "Ledger", "bd.nav.book": "Receivables & payables", "bd.nav.settings": "Settings", "bd.nav.rapor": "Reports",
+           "bd.rapor.sub": "Summary, aging, largest balances, monthly activity, overdue items, CSV", "bd.tag": "Receivables & Payables Ledger",
            "bd.sub": "People, records, documents and reminders", "bd.set.sub": "Appearance, sync, archive and contact",
            "bd.sync": "Sync (phone ⇄ computer)",
            "bd.sync.desc": "Records sync between phones and computers through your own Firebase account; on the same network they also sync over Wi‑Fi without internet. Nothing is deleted or blindly overwritten.",
@@ -2272,7 +2419,8 @@ fccore.i18n.add({
            "bd.yedek": "Backup", "bd.yedek.desc": "Take a full backup of records and documents as a ZIP file. Keep it somewhere separate, such as a USB stick.",
            "bd.yedek.al": "Back up", "bd.cikis": "Do you want to exit the program?", "bd.cikis.t": "Exit",
            "bd.ob.fb": "Firebase details saved. Sign in with your e-mail and password in the sync window (first time: \"Create account\")."},
-    "ar": {"bd.nav": "الدفتر", "bd.nav.book": "الديون والمستحقات", "bd.nav.settings": "الإعدادات", "bd.tag": "دفتر الديون والمستحقات",
+    "ar": {"bd.nav": "الدفتر", "bd.nav.book": "الديون والمستحقات", "bd.nav.settings": "الإعدادات", "bd.nav.rapor": "التقارير",
+           "bd.rapor.sub": "الملخص، أعمار الأرصدة، أكبر الأرصدة، الحركة الشهرية، المتأخرات، CSV", "bd.tag": "دفتر الديون والمستحقات",
            "bd.sub": "الأشخاص والسجلات والمستندات والتذكيرات", "bd.set.sub": "المظهر والمزامنة والأرشيف والتواصل",
            "bd.sync": "المزامنة (الهاتف ⇄ الحاسوب)",
            "bd.sync.desc": "تتم مزامنة السجلات بين الهواتف والحواسيب عبر حساب Firebase الخاص بك؛ وفي الشبكة نفسها تتم المزامنة عبر Wi‑Fi دون إنترنت أيضاً. لا يُحذف شيء ولا يُكتب فوق شيء دون تحقق.",
@@ -2318,6 +2466,11 @@ def build_app(app, db, first_start=True):
     shell.nav_group("bd.nav")
     shell.page("defter", "bd.nav.book", "home", host, sub="bd.sub", scroll=False)
     shell.defter = None
+    if not hasattr(db, "guvenlik"):   # v1.22: PIN kilidi, tutar gizleme, otomatik yedek (bu cihaza özel ayarlar)
+        db.guvenlik = ekler.Guvenlik(db)
+    db.guvenlik.win = win
+    shell.rapor = ekler.RaporSayfasi(db, shell)
+    shell.page("rapor", "bd.nav.rapor", "gauge", shell.rapor, sub="bd.rapor.sub", scroll=False)
 
     def esitle(_state=None):
         d = shell.defter
@@ -2423,7 +2576,8 @@ def build_app(app, db, first_start=True):
 
     def rebuild_settings():
         old = shell.grid
-        shell.grid = fcsettings.build(cards=[sync_card(), archive_card(), backup_card(), agent_card()],
+        shell.grid = fcsettings.build(cards=[sync_card(), ekler.guvenlik_karti(shell, db, W, rebuild_settings), archive_card(),
+                                             backup_card(), ekler.kisayol_karti(W), agent_card()],
                                       usage={"firebase": True, "ai": False,
                                              "project": lambda: db.sync_engine.cfg.get("projectId") if getattr(db, "sync_engine", None) else ""},
                                       about={"version": APP_VERSION, "on_check": (app.fc.updates.check if app.fc.updates else None)},
@@ -2434,7 +2588,7 @@ def build_app(app, db, first_start=True):
             old.deleteLater()
 
     shell.page_changed.connect(lambda k: k == "ayarlar" and rebuild_settings())
-    fccore.i18n.on_change(lambda l: (build_defter(), rebuild_settings()))
+    fccore.i18n.on_change(lambda l: (build_defter(), rebuild_settings(), shell.rapor.kur()))
     fcstyle.on_change(lambda st: (app.setStyleSheet(fcstyle.qss() + app_qss()), shell.defter is not None and
                                   getattr(shell, "_scheme", None) != (st.get("scheme"), st.get("effective")) and
                                   (setattr(shell, "_scheme", (st.get("scheme"), st.get("effective"))), build_defter())))
@@ -2443,6 +2597,8 @@ def build_app(app, db, first_start=True):
     build_defter(first_start)
     rebuild_settings()
     shell.show_page("defter")
+    QTimer.singleShot(0, db.guvenlik.kilitle)            # PIN varsa açılışta kilit ekranı
+    QTimer.singleShot(5000, db.guvenlik.oto_yedek)       # günde bir otomatik yedek
     return win, shell
 
 

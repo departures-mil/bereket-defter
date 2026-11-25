@@ -220,7 +220,7 @@
     function ciz() {
       holder.innerHTML = '';
       var grid = FC.settings.build(holder, {
-        cards: [syncKart(), arsivKart(ciz), yedekKart()],
+        cards: [syncKart(), window.Ekler ? Ekler.ayarKarti(ciz) : null, arsivKart(ciz), yedekKart()].filter(Boolean),
         usage: { firebase: true, ai: false, project: function () { return Sync.signedIn() ? Sync.cfg().projectId : ''; } },
         about: { version: APP_VERSION }, onboarding: OB()
       });
