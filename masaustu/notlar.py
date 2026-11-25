@@ -1,6 +1,11 @@
 """Sürüm notları ("neler yeni" penceresi + GitHub sürüm notları). En yeni sürüm EN ÜSTTE.
 araclar/surum_yaz.py ilk kaydı release-notes.json'a yazar (CI latest.json notları)."""
 NOTES = {
+    "1.21.4": {
+        "tr": "Güncelleme sırasında \"Programdan çıkmak istiyor musunuz?\" sorusu artık çıkmaz; güncelleme kendiliğinden tamamlanır.",
+        "en": "The \"Do you want to quit?\" question no longer appears during an update; the update completes by itself.",
+        "ar": "لم يعد سؤال «هل تريد الخروج من البرنامج؟» يظهر أثناء التحديث؛ يكتمل التحديث تلقائياً.",
+    },
     "1.21.3": {
         "tr": "Eski sürümlerden bu sürüme geçiş bir kez tam kurulumla yapılır (eski güncelleyicideki siyah pencere sorunu yaşanmaz). Sonraki güncellemeler yine arka planda, kendiliğinden. Kayıtlar korunur.",
         "en": "Moving from older versions to this one is done once with a full install (avoids the black-window problem of the old updater). Later updates again run by themselves in the background. Records are kept.",

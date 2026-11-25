@@ -2299,7 +2299,7 @@ def build_app(app, db, first_start=True):
 
     class Win(FcWindow):
         def closeEvent(self, e):
-            if getattr(self, "quitting", False):
+            if getattr(self, "quitting", False) or QApplication.instance().property("fcUpdateQuit"):   # güncelleme kapanışı sormaz
                 e.accept()
                 return
             if QMessageBox.question(self, t("bd.cikis.t"), t("bd.cikis")) == QMessageBox.Yes:
