@@ -1,5 +1,5 @@
-ortak-cekirdek f1d1d850614ee93560181e5a6b15100643b19e14
-https://github.com/departures-mil/ortak-cekirdek/tree/f1d1d850614ee93560181e5a6b15100643b19e14
+ortak-cekirdek 1523f1ab90bf921fb6ef42d0e6297a350a834126
+https://github.com/departures-mil/ortak-cekirdek/tree/1523f1ab90bf921fb6ef42d0e6297a350a834126
 Kopyalanan (değiştirmeden):
 - qt/fccore → masaustu/fccore/            (masaüstü PySide6 kabuğu, güncelleme, iletişim, çökme, rehber, Kullanım Limitleri)
 - web/dist/fc-core.js, web/css, web/fonts → mobil/cekirdek/   (telefon WebView arayüzü)
