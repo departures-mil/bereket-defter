@@ -9,7 +9,10 @@ Admin ile iletişim (Ayarlar'ın EN SONU), çökme raporu, Kullanım Limitleri, 
 - `masaustu/` — masaüstü kaynağı. `main.py` (kabuk: `build_app`, defter sayfası `MainWindow`, ayarlar kartları), `db.py` (SQLite + arşiv),
   `sync.py` (Firebase REST), `lan.py` (Wi‑Fi sunucusu, port 47341), `fccore/` (ortak çekirdek, DEĞİŞTİRMEYİN), `fc_agent.py` (Asistan Agent),
   `surum.py` (sürüm), `notlar.py` (sürüm notları).
-- `mobil/` — telefon arayüzü (WebView). `cekirdek/` = ortak çekirdek web (fc-core.js, css, yazı tipleri), `js/kabuk.js` = çekirdek yapıştırıcısı.
+  v1.22: `ekler_cekirdek.py` (arayüzsüz: PIN, otomatik yedek + eksikleri geri getir, raporlar, CSV, hızlı kayıt ayrıştırıcı, mesaj,
+  senet, taksit), `ekler.py` (Qt arayüzü: kilit perdesi, Raporlar sayfası, diyaloglar, geri al çubuğu), `ekler_ceviri.py` (çeviriler).
+- `mobil/` — telefon arayüzü (WebView). v1.22: `js/ekler.js` (masaüstü ekleriyle aynı kurallar), `js/i18n_ekler.js` (`python3 araclar/ceviri_mobil.py` ile
+  `masaustu/ekler_ceviri.py`'den üretilir; elle düzenlemeyin). `cekirdek/` = ortak çekirdek web (fc-core.js, css, yazı tipleri), `js/kabuk.js` = çekirdek yapıştırıcısı.
   `android/assets/www` bunun kopyasıdır (APK derlenirken yenilenir).
 - `android/` — APK'nın apktool ağacı (smali). Java eki: `android/java/` (FcGuncelle: GitHub Releases'tan APK güncellemesi + ortak FcDelta)
   → `bash araclar/java_smali.sh` ile smali'ye çevrilir. Paket adı `com.bereket.alacakverecek`, imza anahtarı hep aynı (CI secret'ları).

@@ -23,7 +23,7 @@ if not d.persons():
     d.add_tx(p1, "2026-11-22 16:40:00", "ALDIM", "USD", 100, "Kısmi ödeme")
     d.add_tx(p2, "2026-11-21 12:00:00", "VERDIM", "SYP", 1500000, "Malzeme")
     d.add_tx(p3, "2026-11-23 09:30:00", "ALDIM", "TRY", 4500, "Borç ödemesi")
-    d.add_reminder(p1, "TAHSIL", "USD", 150, "2026-11-24 09:00", "Kalan ödeme")
+    d.add_reminder(p1, "TAHSIL", "USD", 150, "2026-11-24 09:00", "Kalan ödeme"); d.update_contact(p1, {"tags": "iş, komşu"})
     t = d.add_tx(p3, "2026-11-24 11:00:00", "VERDIM", "TRY", 800, "Silinen deneme"); d.delete_tx(t)
 fccore.storage.use(d.dir, app="bereket-defter")
 o = json.loads(os.environ["EKRAN"])
@@ -57,7 +57,7 @@ def main():
         st.update({"onboarding.done": True, "whatsnew.seen": "9.9.9"})
         veri = tempfile.mkdtemp()
         env = dict(os.environ, AV_DATA_DIR=veri, QT_QPA_PLATFORM="offscreen",
-                   EKRAN=json.dumps({"st": st, "out": os.path.join(out, "masaustu-" + ad), "pages": ["defter", "ayarlar"]}))
+                   EKRAN=json.dumps({"st": st, "out": os.path.join(out, "masaustu-" + ad), "pages": ["defter", "rapor", "ayarlar"]}))
         r = subprocess.run([sys.executable, "-c", KOD], cwd=os.path.join(KOK, "masaustu"), env=env, capture_output=True, text=True, timeout=120)
         print(ad, "ok" if r.returncode == 0 else r.stderr[-800:])
 

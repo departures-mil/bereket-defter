@@ -18,7 +18,7 @@ CURRENCY_SYMBOLS = {"USD": "$", "TRY": "₺", "SYP": "£S"}
 DIRECTIONS = {"VERDIM": "Verdim (Çıktı)", "ALDIM": "Aldım (Girdi)"}
 # Kişiye ulaşma yolları (her biri açılıp kapatılabilir) ve ek iletişim bilgileri
 CHANNELS = ("wa", "tg", "sg", "call")
-CONTACT_FIELDS = ("phone2", "wa_phone", "tg_user", "sg_phone", "email", "address")
+CONTACT_FIELDS = ("phone2", "wa_phone", "tg_user", "sg_phone", "email", "address", "tags")   # v1.22: tags = etiketler (virgülle)
 # Eşitleme (v1.2): yerel tablo -> Firestore koleksiyonu (ESITLEME_SPEC.md)
 SYNC_TABLES = {"persons": "persons", "transactions": "tx", "photos": "docs", "reminders": "rem", "history": "hist"}
 CHUNK = 700000  # bir blob parçasındaki en fazla bayt
@@ -241,8 +241,8 @@ class DB:
         q = "SELECT * FROM persons"
         args = []
         if search:
-            q += " WHERE name LIKE ? OR phone LIKE ? OR phone2 LIKE ? OR email LIKE ?"
-            args = [f"%{search}%"] * 4
+            q += " WHERE name LIKE ? OR phone LIKE ? OR phone2 LIKE ? OR email LIKE ? OR tags LIKE ?"
+            args = [f"%{search}%"] * 5
         return self.con.execute(q + " ORDER BY name COLLATE NOCASE", args).fetchall()
 
     def person(self, pid):

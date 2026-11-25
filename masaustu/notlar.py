@@ -1,6 +1,26 @@
 """Sürüm notları ("neler yeni" penceresi + GitHub sürüm notları). En yeni sürüm EN ÜSTTE.
 araclar/surum_yaz.py ilk kaydı release-notes.json'a yazar (CI latest.json notları)."""
 NOTES = {
+    "1.22.0": {
+        "tr": "Güvenlik: PIN kilidi (açılışta ve boşta kalınca), tutarları gizle düğmesi (👁), her gün otomatik yedek ve önizlemeli «eksikleri geri getir» (hiçbir kaydı silmez, üzerine yazmaz)\n"
+              "Yeni Raporlar sayfası: genel durum ve dolar karşılığı (elle kur), yaşlandırma, en büyük bakiyeler, aylık hareket grafiği, vadesi geçenler; CSV dışa / içe aktarma\n"
+              "Kişiye mesaj / mutabakat: bakiye bildirimi, kibar ödeme hatırlatması, hesap kapandı (Türkçe, İngilizce, Arapça; WhatsApp · Telegram · kopyala)\n"
+              "Taksit planı (her taksit için hatırlatıcı) ve Bakara 282'ye uygun borç senedi (kâtip ve iki şahit; PDF / yazdır)\n"
+              "Hızlı kayıt: «Ahmet'e 500 TL verdim» yazın, kayıt hazırlanır (internet gerekmez)\n"
+              "Kişilere etiket (aile, iş…) ve etiket süzgeci; vadesi geçenler ⏰ ile işaretli; silinen kayıt için «Geri al»; klavye kısayolları (masaüstü)",
+        "en": "Security: PIN lock (at start and when idle), a hide-amounts button (👁), a daily automatic backup and a «recover missing items» option with preview (never deletes or overwrites a record)\n"
+              "New Reports page: overall position and USD equivalent (manual rates), aging, largest balances, monthly activity chart, overdue items; CSV export / import\n"
+              "Message / reconcile with a person: balance notice, polite payment reminder, account settled (Turkish, English, Arabic; WhatsApp · Telegram · copy)\n"
+              "Instalment plan (a reminder for each instalment) and a promissory note following al-Baqarah 2:282 (scribe and two witnesses; PDF / print)\n"
+              "Quick entry: type «gave Ahmet 500 TL» and the record is prepared (no internet needed)\n"
+              "Tags for people (family, work…) with a tag filter; overdue people marked with ⏰; «Undo» after deleting; keyboard shortcuts (desktop)",
+        "ar": "الأمان: قفل برمز PIN (عند الفتح وعند عدم الاستخدام)، وزر لإخفاء المبالغ (👁)، ونسخة احتياطية تلقائية يومية، وخيار «استرجاع الناقص» مع معاينة (لا يحذف أي سجل ولا يكتب فوقه)\n"
+              "صفحة تقارير جديدة: الوضع العام وما يعادله بالدولار (سعر صرف يدوي)، أعمار الأرصدة، أكبر الأرصدة، رسم الحركة الشهرية، المتأخرات؛ تصدير / استيراد CSV\n"
+              "رسالة / مطابقة حساب مع الشخص: إشعار الرصيد، تذكير لطيف بالسداد، إغلاق الحساب (بالتركية والإنجليزية والعربية؛ WhatsApp · Telegram · نسخ)\n"
+              "خطة أقساط (تذكير لكل قسط) وسند دين وفق آية الدين (البقرة: 282) بكاتب وشاهدين؛ PDF / طباعة\n"
+              "إدخال سريع: اكتب «أعطيت أحمد 500 ليرة تركية» فيُجهَّز السجل (دون إنترنت)\n"
+              "وسوم للأشخاص (عائلة، عمل…) مع تصفية حسب الوسم؛ تمييز المتأخرين بـ⏰؛ «تراجع» بعد الحذف؛ اختصارات لوحة المفاتيح (الحاسوب)",
+    },
     "1.21.4": {
         "tr": "Güncelleme sırasında \"Programdan çıkmak istiyor musunuz?\" sorusu artık çıkmaz; güncelleme kendiliğinden tamamlanır.",
         "en": "The \"Do you want to quit?\" question no longer appears during an update; the update completes by itself.",

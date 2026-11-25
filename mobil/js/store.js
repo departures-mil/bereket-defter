@@ -4,7 +4,7 @@
 
 const COLS = ["persons", "tx", "docs", "rem", "hist"];
 const FIELDS = {
-  persons: { s: ["name", "phone", "note", "phone2", "wa_phone", "tg_user", "sg_phone", "email", "address", "created_at"],
+  persons: { s: ["name", "phone", "note", "phone2", "wa_phone", "tg_user", "sg_phone", "email", "address", "tags", "created_at"],
              b: ["ch_wa", "ch_tg", "ch_sg", "ch_call"], d: [], i: [] },
   tx: { s: ["person", "ts", "direction", "currency", "description", "created_at", "updated_at"], b: [], d: ["amount"], i: [] },
   docs: { s: ["tx", "name", "ext", "mime", "added_at"], b: [], d: [], i: ["size", "chunks"] },
