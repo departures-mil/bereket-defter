@@ -76,10 +76,25 @@ jobs:
           # Runner görüntüsünde NSIS yoksa kur; kurulum yeri (x86 / x64) ya da PATH değişebilir
           $adaylar = { @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe", "$env:ChocolateyInstall\bin\makensis.exe") }
           $nsis = (& $adaylar) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $nsis) {   # 1) resmi NSIS zip'i (SourceForge), 2) olmazsa Chocolatey — her biri 3 deneme
+            foreach ($i in 1..3) {
+              try {
+                Invoke-WebRequest -UseBasicParsing -MaximumRedirection 10 -UserAgent "Wget" -OutFile "$env:RUNNER_TEMP\nsis.zip" `
+                  -Uri "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.10/nsis-3.10.zip"
+                Expand-Archive -Force "$env:RUNNER_TEMP\nsis.zip" "$env:RUNNER_TEMP\nsis"
+                $nsis = Get-ChildItem "$env:RUNNER_TEMP\nsis" -Recurse -Filter makensis.exe | Select-Object -First 1 -ExpandProperty FullName
+                if ($nsis) { break }
+              } catch { Write-Host "NSIS zip indirilemedi ($i): $_"; Start-Sleep 10 }
+            }
+          }
           if (-not $nsis) {
-            choco install nsis -y --no-progress
-            $nsis = (& $adaylar) | Where-Object { Test-Path $_ } | Select-Object -First 1
-            if (-not $nsis) { $nsis = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source }
+            foreach ($i in 1..3) {
+              choco install nsis -y --no-progress
+              $nsis = (& $adaylar) | Where-Object { Test-Path $_ } | Select-Object -First 1
+              if (-not $nsis) { $nsis = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source }
+              if ($nsis) { break }
+              Start-Sleep 20
+            }
           }
           if (-not $nsis) { Write-Error "NSIS (makensis.exe) bulunamadı"; exit 1 }
           Write-Host "NSIS: $nsis"
