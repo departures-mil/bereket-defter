@@ -1,14 +1,14 @@
 {
- "surum": "1.21.3",
- "kod": "1_21_3",
+ "surum": "1.22.0",
+ "kod": "1_22_0",
  "dosya": "mobil-1_20.zip",
  "sha256": "0eaf1da01b0e8e2e5d75188235890c1b8afef42d5fb266f5212ddc7d7c3575d7",
  "boyut": 216284,
- "notlar": "Bereket Defter 1.21.3: uygulamanın yeni sürümü (APK). Kayıtlarınız olduğu gibi kalır.\n\nEski sürümlerden bu sürüme geçiş bir kez tam kurulumla yapılır (eski güncelleyicideki siyah pencere sorunu yaşanmaz). Sonraki güncellemeler yine arka planda, kendiliğinden. Kayıtlar korunur.",
- "tarih": "2026-11-25 00:32",
- "minNative": 20,
- "apkKod": "20",
- "apkDosya": "BereketDefter-20.apk",
- "apkBoyut": 987676,
- "apkSha256": "e5a2541c606428f67a23b398796c5ea1f55423a765cbee39bc32c4f6779f42d4"
+ "notlar": "Bereket Defter 1.22.0: uygulamanın yeni sürümü (APK). Kayıtlarınız olduğu gibi kalır.\n\nGüvenlik: PIN kilidi (açılışta ve boşta kalınca), tutarları gizle düğmesi (👁), her gün otomatik yedek ve önizlemeli «eksikleri geri getir» (hiçbir kaydı silmez, üzerine yazmaz)\nYeni Raporlar sayfası: genel durum ve dolar karşılığı (elle kur), yaşlandırma, en büyük bakiyeler, aylık hareket grafiği, vadesi geçenler; CSV dışa / içe aktarma\nKişiye mesaj / mutabakat: bakiye bildirimi, kibar ödeme hatırlatması, hesap kapandı (Türkçe, İngilizce, Arapça; WhatsApp · Telegram · kopyala)\nTaksit planı (her taksit için hatırlatıcı) ve Bakara 282'ye uygun borç senedi (kâtip ve iki şahit; PDF / yazdır)\nHızlı kayıt: «Ahmet'e 500 TL verdim» yazın, kayıt hazırlanır (internet gerekmez)\nKişilere etiket (aile, iş…) ve etiket süzgeci; vadesi geçenler ⏰ ile işaretli; silinen kayıt için «Geri al»; klavye kısayolları (masaüstü)",
+ "tarih": "2026-11-25 23:54",
+ "minNative": 22,
+ "apkKod": "22",
+ "apkDosya": "BereketDefter-22.apk",
+ "apkBoyut": 1024679,
+ "apkSha256": "974b446f4b3d7aaf0cd2ccf4b04738c0777ff055f53ed7107c1dd6814df7a01e"
 }
