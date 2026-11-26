@@ -1,6 +1,11 @@
 """Sürüm notları ("neler yeni" penceresi + GitHub sürüm notları). En yeni sürüm EN ÜSTTE.
 araclar/surum_yaz.py ilk kaydı release-notes.json'a yazar (CI latest.json notları)."""
 NOTES = {
+    "1.22.1": {
+        "tr": "Telefon: «Güncelleme yapılamadı: Failed to fetch» hatası giderildi. Güncelleme denetimi ve indirme artık telefonun kendi bağlantısıyla yapılır; Güncelle'ye bir kez basmak yeter (yüzde, MB, kalan MB ve hız gösterilir). Kayıtlar korunur.",
+        "en": "Phone: fixed the «Update failed: Failed to fetch» error. Update checks and downloads now use the phone's own connection; one press of Update is enough (percentage, MB, MB remaining and speed are shown). Records are kept.",
+        "ar": "الهاتف: أُصلح خطأ «تعذّر التحديث: Failed to fetch». أصبح فحص التحديث وتنزيله يتمّان عبر اتصال الهاتف نفسه؛ تكفي ضغطة واحدة على «تحديث» (تُعرض النسبة المئوية والحجم بالميغابايت والمتبقي والسرعة). السجلات محفوظة.",
+    },
     "1.22.0": {
         "tr": "Güvenlik: PIN kilidi (açılışta ve boşta kalınca), tutarları gizle düğmesi (👁), her gün otomatik yedek ve önizlemeli «eksikleri geri getir» (hiçbir kaydı silmez, üzerine yazmaz)\n"
               "Yeni Raporlar sayfası: genel durum ve dolar karşılığı (elle kur), yaşlandırma, en büyük bakiyeler, aylık hareket grafiği, vadesi geçenler; CSV dışa / içe aktarma\n"

@@ -29,6 +29,10 @@ import java.net.URL;
  * Olaylar JS'e: window.__fcApk({type:'progress'|'patchFailed'|'installing'|'done'|'error', …}). "Bilinmeyen uygulamalar" izni yoksa
  * ayar ekranı açılır ve 'error' IZIN döner (kullanıcı izin verip Güncelle'ye yeniden basar). İndirme yerelde yapılır: WebView'den
  * GitHub indirmesi CORS'a takılır. Tüm sürümler aynı anahtarla imzalanır (CI: ANDROID_KEYSTORE_* secret'ları).
+ *
+ * v1.22.1: window.AndroidBridge.httpGet(id, url) — latest.json gibi küçük metinleri (≤ 2 MB) yerelde indirir; sonuç
+ * window.__fcHttp(id, {status, body} | {error}). WebView (https://appassets.androidplatform.net) GitHub'dan fetch edemiyordu
+ * ("Failed to fetch": github.com yönlendirmesi CORS başlığı vermez), bu yüzden 1.21–1.22'de telefon güncellemesi hiç başlamıyordu.
  */
 public final class FcGuncelle {
     private static volatile boolean busy = false;
@@ -103,13 +107,53 @@ public final class FcGuncelle {
         }, "fc-guncelle").start();
     }
 
-    private static void download(Activity a, WebView w, String url, File dst, long size, boolean patch) throws IOException {
-        if (!url.startsWith("https://github.com/") && !url.startsWith("https://objects.githubusercontent.com/")
-                && !url.startsWith("https://release-assets.githubusercontent.com/")) throw new IOException("BAD_URL");
-        HttpURLConnection c = null;
+    public static void httpGet(final Activity a, final WebView w, final String id, final String url) {
+        new Thread(new Runnable() {
+            @Override public void run() {
+                String res;
+                HttpURLConnection c = null;
+                try {
+                    c = open(url);
+                    int st = c.getResponseCode();
+                    String body = "";
+                    if (st == 200) {
+                        InputStream in = c.getInputStream();
+                        java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                        try {
+                            byte[] buf = new byte[16384];
+                            int n;
+                            while ((n = in.read(buf)) > 0) {
+                                bo.write(buf, 0, n);
+                                if (bo.size() > 2 * 1024 * 1024) throw new IOException("TOO_BIG");
+                            }
+                        } finally {
+                            try { in.close(); } catch (IOException ignored) { }
+                        }
+                        body = new String(bo.toByteArray(), "UTF-8");
+                    }
+                    res = "{\"status\":" + st + ",\"body\":" + JSONObject.quote(body) + "}";
+                } catch (Exception e) {
+                    res = "{\"error\":" + JSONObject.quote(String.valueOf(e.getMessage())) + "}";
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                final String js = "window.__fcHttp && window.__fcHttp(" + JSONObject.quote(String.valueOf(id)) + "," + res + ")";
+                if (w == null) return;
+                a.runOnUiThread(new Runnable() { @Override public void run() {
+                    try { w.evaluateJavascript(js, null); } catch (Throwable ignored) { }
+                } });
+            }
+        }, "fc-http").start();
+    }
+
+    /** GitHub adresini açar, yönlendirmeleri (en çok 6) izler; dönen bağlantının yanıt kodu 3xx değildir. */
+    private static HttpURLConnection open(String url) throws IOException {
+        if (url == null || (!url.startsWith("https://github.com/") && !url.startsWith("https://objects.githubusercontent.com/")
+                && !url.startsWith("https://release-assets.githubusercontent.com/"))) throw new IOException("BAD_URL");
         for (int hop = 0; hop < 6; hop++) {
-            c = (HttpURLConnection) new URL(url).openConnection();
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
             c.setInstanceFollowRedirects(false);
+            c.setUseCaches(false);
             c.setConnectTimeout(20000);
             c.setReadTimeout(60000);
             c.setRequestProperty("User-Agent", "BereketDefter-Android");
@@ -121,9 +165,15 @@ public final class FcGuncelle {
                 url = loc;
                 continue;
             }
-            if (st != 200) { c.disconnect(); throw new IOException("HTTP " + st); }
-            break;
+            return c;
         }
+        throw new IOException("REDIRECTS");
+    }
+
+    private static void download(Activity a, WebView w, String url, File dst, long size, boolean patch) throws IOException {
+        HttpURLConnection c = open(url);
+        int st = c.getResponseCode();
+        if (st != 200) { c.disconnect(); throw new IOException("HTTP " + st); }
         long total = size > 0 ? size : Math.max(0, c.getContentLength());
         long done = 0, last = 0;
         InputStream in = c.getInputStream();

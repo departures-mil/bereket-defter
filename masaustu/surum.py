@@ -1,2 +1,2 @@
 """Bereket Defter sürümü — tek kaynak (semver X.Y.Z, etiket vX.Y.Z). araclar/surum_yaz.py bunu ve telefon tarafını birlikte yazar."""
-APP_VERSION = "1.22.0"
+APP_VERSION = "1.22.1"

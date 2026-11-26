@@ -800,3 +800,19 @@
 
     return-void
 .end method
+
+.method public httpGet(Ljava/lang/String;Ljava/lang/String;)V
+    .locals 2
+    .annotation runtime Landroid/webkit/JavascriptInterface;
+    .end annotation
+
+    iget-object v0, p0, Lcom/bereket/alacakverecek/MainActivity$Bridge;->this$0:Lcom/bereket/alacakverecek/MainActivity;
+
+    invoke-static {v0}, Lcom/bereket/alacakverecek/MainActivity;->access$100(Lcom/bereket/alacakverecek/MainActivity;)Landroid/webkit/WebView;
+
+    move-result-object v1
+
+    invoke-static {v0, v1, p1, p2}, Lcom/bereket/alacakverecek/FcGuncelle;->httpGet(Landroid/app/Activity;Landroid/webkit/WebView;Ljava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
