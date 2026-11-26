@@ -157,6 +157,32 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
     assert.deepStrictEqual(r, { dir: 'rtl', lang: 'ar', s: 'klasik' });
   });
   await p2.close();
+
+  // v1.22.1: Android'de güncelleme WebView fetch'i kullanmaz (CORS → "Failed to fetch"); latest.json yerel httpGet, indirme yerel apkUpdate
+  const SAHTE = `localStorage.setItem('fc.onboarding.done','true');
+    window.__istekler = []; window.__plan = null;
+    window.AndroidBridge = {
+      appVersion: () => '1.0.0',
+      httpGet: (id, url) => { __istekler.push(url); setTimeout(() => window.__fcHttp(id, { status: 200, body: JSON.stringify({ schema: 1, app: 'bereket-defter', version: '9.9.9',
+        assets: { android: { file: 'BereketDefter-9.9.9.apk', size: 1000, sha256: 'a'.repeat(64), patches: {} } } }) }), 5); },
+      apkUpdate: (j) => { __plan = JSON.parse(j); const e = (o) => setTimeout(() => window.__fcApk(o), 5);
+        e({ type: 'progress', patch: false, done: 500, total: 1000 }); setTimeout(() => { window.__fcApk({ type: 'progress', patch: false, done: 1000, total: 1000, finished: true });
+        window.__fcApk({ type: 'installing' }); window.__fcApk({ type: 'done', result: 'done' }); }, 30); }
+    };`;
+  const p3 = await sayfa(SAHTE);
+  await t('Android güncellemesi: yerel denetim + yerel indirme (CORS yok)', async () => {
+    const r = await p3.evaluate(async () => {
+      const durumlar = []; FC.updater.subscribe(s => durumlar.push(s.status));
+      const plan = await FC.updater.check();
+      await FC.updater.run();
+      return { v: plan && plan.version, url: __istekler[0], tam: __plan && __plan.full.url, son: FC.updater.state().status, indi: durumlar.indexOf('downloading') >= 0,
+        izin: FC.updater.errorText('IZIN') === FC.t('bd.izin') };
+    });
+    assert.strictEqual(r.v, '9.9.9'); assert.ok(/releases\/latest\/download\/latest\.json$/.test(r.url), r.url);
+    assert.ok(/releases\/download\/v9\.9\.9\/BereketDefter-9\.9\.9\.apk$/.test(r.tam), r.tam);
+    assert.strictEqual(r.son, 'done'); assert.ok(r.indi); assert.ok(r.izin);
+  });
+  await p3.close();
   await b.close(); srv.close();
   assert.deepStrictEqual(errs, [], 'sayfa hataları: ' + errs.join(' | '));
   console.log(ok + ' telefon testi geçti');

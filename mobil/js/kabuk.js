@@ -109,6 +109,65 @@
       });
     };
     FC.host.can.update = true;
+
+    /* v1.22.1 düzeltmesi: WebView (appassets.androidplatform.net) GitHub'dan fetch edemez — github.com yönlendirmesi CORS başlığı
+       vermez, 1.21–1.22'de "Güncelleme yapılamadı: Failed to fetch" buradan geliyordu. (1) latest.json yerel AB.httpGet ile okunur;
+       (2) "Güncelle" çekirdeğin WebView indirmesi yerine yukarıdaki yerel FcGuncelle yolunu (FC.host.update.run) kullanır.
+       Çekirdek kopyası değişmez: FC.updater yalnızca sarılır (durum + abonelik aynı biçimde). */
+    if (typeof AB.httpGet === 'function') {
+      var httpSeq = 0, httpWait = {};
+      window.__fcHttp = function (id, r) { var f = httpWait[id]; if (f) { delete httpWait[id]; f(r || {}); } };
+      var yerelGet = function (url) {
+        return new Promise(function (resolve, reject) {
+          var id = 'h' + (++httpSeq) + '_' + Date.now();
+          var to = setTimeout(function () { delete httpWait[id]; reject(Object.assign(new Error('TIMEOUT'), { code: 'TIMEOUT' })); }, 45000);
+          httpWait[id] = function (r) {
+            clearTimeout(to);
+            if (r.error) reject(Object.assign(new Error(r.error), { code: 'NETWORK' }));
+            else if (r.status !== 200) reject(Object.assign(new Error('HTTP ' + r.status), { code: 'HTTP_' + r.status }));
+            else resolve(r.body || '');
+          };
+          try { AB.httpGet(id, url); } catch (e) { clearTimeout(to); delete httpWait[id]; reject(e); }
+        });
+      };
+      FC.host.net = { download: function (url) { return yerelGet(url).then(function (t) { return new TextEncoder().encode(t); }); } };
+    }
+    (function () {
+      var U = FC.updater, son = U.state(), ust = null, aboneler = [], calisiyor = false;
+      function durum() { var s = {}, k; for (k in son) s[k] = son[k]; if (ust) for (k in ust) s[k] = ust[k]; return s; }
+      function yay() { var s = durum(); aboneler.slice().forEach(function (f) { try { f(s); } catch (e) { /* yok */ } }); }
+      function ayarla(p) { ust = ust || {}; for (var k in p) ust[k] = p[k]; yay(); }
+      U.subscribe(function (s) { son = s; if (ust && !calisiyor && ['checking', 'available', 'none'].indexOf(s.status) >= 0) ust = null; yay(); });
+      var W = {};
+      for (var k in U) W[k] = U[k];
+      W.state = durum;
+      W.subscribe = function (f) { aboneler.push(f); try { f(durum()); } catch (e) { /* yok */ } return function () { aboneler = aboneler.filter(function (x) { return x !== f; }); }; };
+      W.errorText = function (c) { return c === 'IZIN' ? T('bd.izin') : U.errorText(c); };
+      W.check = function (o) { if (!calisiyor) ust = null; return U.check(o); };
+      W.run = async function () {
+        if (calisiyor) return;
+        var p = son.plan || (await U.check());
+        if (!p) { if (son.error) yay(); return; }
+        calisiyor = true;
+        var tr = { patch: FC.progress.tracker(p.mode === 'patch' ? p.size : 0), full: FC.progress.tracker(p.full.size) };
+        var bas = { done: 0, total: p.size, pct: 0, remaining: p.size, speed: 0 };
+        ust = null; ayarla({ status: 'downloading', mode: p.mode, progress: bas, error: null, fallback: false, patchError: null });
+        if (FC.storage) FC.storage.set('whatsnew.pending', { version: p.version, notes: p.notes });
+        try {
+          var r = await FC.host.update.run(p, function (ev) {
+            if (ev.patchFailed) ayarla({ status: 'downloading', mode: 'full', fallback: true, patchError: ev.error || '', progress: { done: 0, total: p.full.size, pct: 0, remaining: p.full.size, speed: 0 } });
+            else if (ev.installing) ayarla({ status: 'installing' });
+            else if (ev.done != null) ayarla({ status: 'downloading', mode: ev.patch ? 'patch' : 'full', progress: tr[ev.patch ? 'patch' : 'full'].update(ev.done, ev.finished) });
+          });
+          ayarla({ status: 'done' });
+          return r;
+        } catch (e) {
+          ayarla({ status: 'error', error: e.code || e.message || 'ERR' });
+          throw e;
+        } finally { calisiyor = false; }
+      };
+      FC.updater = W;
+    })();
   }
 
   /* ---------- çekirdeği başlat ---------- */
